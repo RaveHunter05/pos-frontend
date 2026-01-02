@@ -1,30 +1,28 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { http } from '@/lib/http';
 import type { Inventory } from '@/types/domain';
 import { DataTable } from '@/components/DataTable';
-import styles from './Inventory.module.css';
 import { buildFormBody } from '@/lib/forms';
+import { useApi } from '../hooks/useApi';
 
 export default function Inventory() {
   const [search, setSearch] = useState('');
   const [adjustments, setAdjustments] = useState<Record<number, number>>({});
   const queryClient = useQueryClient();
+  const { get, put } = useApi();
 
   const inventoryQuery = useQuery({
     queryKey: ['inventories'],
     queryFn: async () => {
-      const response = await http.get<Inventory[]>('/api/inventories');
-      return response.data;
+      const response = await get<Inventory[]>('/api/inventories');
+      return response;
     }
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, quantity }: { id: number; quantity: number }) => {
       const body = buildFormBody({ quantity });
-      await http.put(`/api/inventories/${id}`, body, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+      await put(`/api/inventories/${id}`, body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventories'] });
@@ -43,14 +41,15 @@ export default function Inventory() {
   }, [inventoryQuery.data, search]);
 
   return (
-    <div className={styles.wrapper}>
-      <header className={styles.header}>
-        <h2>Inventario</h2>
+    <div className="flex flex-col gap-6">
+      <header className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-gray-900">Inventario</h2>
         <input
           type="search"
           placeholder="Buscar producto"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         />
       </header>
       <DataTable
@@ -68,10 +67,10 @@ export default function Inventory() {
             key: 'actions',
             header: 'Ajustar',
             render: (item) => (
-              <div className={styles.tableActions}>
+              <div className="flex gap-2 items-center">
                 <input
                   type="number"
-                  className={styles.inputInline}
+                  className="w-20 px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   value={adjustments[item.id] ?? item.quantity}
                   onChange={(event) =>
                     setAdjustments((prev) => ({ ...prev, [item.id]: Number(event.target.value) }))
@@ -79,7 +78,7 @@ export default function Inventory() {
                 />
                 <button
                   type="button"
-                  className={styles.button}
+                  className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   disabled={updateMutation.isPending}
                   onClick={() =>
                     updateMutation.mutate({ id: item.id, quantity: adjustments[item.id] ?? item.quantity })

@@ -2,9 +2,8 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { http } from '@/lib/http';
-import styles from './ChartCard.module.css';
 import type { Invoice } from '@/types/domain';
+import { useApi } from '../../hooks/useApi';
 
 type SalesByDayChartProps = {
   from?: string;
@@ -15,11 +14,13 @@ type SalesByDayChartProps = {
 export function SalesByDayChart({ from, to, title = 'Ventas por día' }: SalesByDayChartProps = {}) {
   const rangeTo = to ? dayjs(to) : dayjs();
   const rangeFrom = from ? dayjs(from) : rangeTo.subtract(30, 'day');
+  const { get } = useApi();
+  
   const invoicesQuery = useQuery({
     queryKey: ['invoices', 'sales-by-day'],
     queryFn: async () => {
-      const response = await http.get<Invoice[]>('/api/invoices');
-      return response.data;
+      const response = await get<Invoice[]>('/api/invoices');
+      return response;
     }
   });
 
@@ -43,12 +44,12 @@ export function SalesByDayChart({ from, to, title = 'Ventas por día' }: SalesBy
   }, [invoicesQuery.data, rangeFrom, rangeTo]);
 
   return (
-    <div className={styles.card}>
-      <header>
-        <h3>{title}</h3>
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <header className="mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       </header>
       {invoicesQuery.isLoading ? (
-        <div className={styles.skeleton}>Cargando...</div>
+        <div className="flex items-center justify-center h-64 text-gray-500">Cargando...</div>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={chartData}>

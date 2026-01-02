@@ -1,23 +1,36 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { http } from '@/lib/http';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Order, OrderStatus } from '@/types/domain';
 import { DataTable } from '@/components/DataTable';
-import styles from './Orders.module.css';
 import { formatCurrency, formatDateTime } from '@/lib/format';
+import { useApi } from '../hooks/useApi';
 
 const statusOptions: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
 export default function Orders() {
   const [status, setStatus] = useState<OrderStatus | ''>('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const { get, apiDelete } = useApi();
+  const queryClient = useQueryClient();
 
   const ordersQuery = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
-      const response = await http.get<Order[]>('/api/orders');
-      return response.data;
+      const response = await get<Order[]>('/api/orders');
+      return response;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiDelete(`/api/orders/${id}`);
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      if (selectedId === id) {
+        setSelectedId(null);
     }
+    },
   });
 
   const filteredOrders = useMemo(() => {
@@ -42,10 +55,14 @@ export default function Orders() {
   }, [filteredOrders, selectedId]);
 
   return (
-    <div className={styles.wrapper}>
-      <header className={styles.header}>
-        <h2>Pedidos</h2>
-        <select value={status} onChange={(event) => setStatus(event.target.value as OrderStatus | '')}>
+    <div className="flex flex-col gap-6">
+      <header className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-gray-900">Pedidos</h2>
+        <select
+          value={status}
+          onChange={(event) => setStatus(event.target.value as OrderStatus | '')}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        >
           <option value="">Todos</option>
           {statusOptions.map((option) => (
             <option key={option} value={option}>
@@ -54,8 +71,8 @@ export default function Orders() {
           ))}
         </select>
       </header>
-      <div className={styles.content}>
-        <section className={styles.card}>
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+        <section className="bg-white rounded-xl shadow-sm p-6">
           <DataTable
             data={filteredOrders}
             isLoading={ordersQuery.isFetching}
@@ -72,38 +89,64 @@ export default function Orders() {
                 header: 'Total',
                 render: (order) => formatCurrency(order.totalAmount)
               },
-              { key: 'status', header: 'Estado' }
+              { key: 'status', header: 'Estado' },
+              {
+                key: 'actions',
+                header: 'Acciones',
+                render: (order) => (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('¿Eliminar pedido?')) {
+                        deleteMutation.mutate(order.id);
+                      }
+                    }}
+                    disabled={deleteMutation.isPending}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                )
+              }
             ]}
           />
         </section>
-        <aside className={styles.card}>
-          <h3>Detalle</h3>
-          {!selectedOrder && <p>Seleccione un pedido para ver el detalle.</p>}
-          <ul className={styles.orderList}>
+        <aside className="bg-white rounded-xl shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Detalle</h3>
+          {!selectedOrder && <p className="text-gray-600">Seleccione un pedido para ver el detalle.</p>}
+          <ul className="list-none p-0 m-0 flex flex-col gap-2 mb-4">
             {filteredOrders.map((order) => (
               <li key={order.id}>
-                <button type="button" onClick={() => setSelectedId(order.id)} className={selectedOrder?.id === order.id ? styles.active : ''}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(order.id)}
+                  className={`w-full px-3 py-2 rounded-lg text-left transition-colors ${
+                    selectedOrder?.id === order.id
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-transparent border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
                   {order.orderNumber} — {formatCurrency(order.totalAmount)}
                 </button>
               </li>
             ))}
           </ul>
           {selectedOrder && (
-            <div className={styles.items}>
-              <div className={styles.meta}>
-                <span><strong>Estado:</strong> {selectedOrder.status}</span>
-                <span><strong>Subtotal:</strong> {formatCurrency(selectedOrder.subtotal)}</span>
-                <span><strong>Impuestos:</strong> {formatCurrency(selectedOrder.taxAmount)}</span>
-                <span><strong>Envío:</strong> {formatCurrency(selectedOrder.shippingAmount)}</span>
-                <span><strong>Total:</strong> {formatCurrency(selectedOrder.totalAmount)}</span>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex flex-col gap-2 mb-4">
+                <span className="text-sm"><strong>Estado:</strong> {selectedOrder.status}</span>
+                <span className="text-sm"><strong>Subtotal:</strong> {formatCurrency(selectedOrder.subtotal)}</span>
+                <span className="text-sm"><strong>Impuestos:</strong> {formatCurrency(selectedOrder.taxAmount)}</span>
+                <span className="text-sm"><strong>Envío:</strong> {formatCurrency(selectedOrder.shippingAmount)}</span>
+                <span className="text-sm"><strong>Total:</strong> {formatCurrency(selectedOrder.totalAmount)}</span>
               </div>
-              <h4>Productos</h4>
-              <ul>
+              <h4 className="font-semibold text-gray-900 mb-2">Productos</h4>
+              <ul className="list-disc list-inside space-y-1">
                 {selectedOrder.orderItems?.map((item) => (
-                  <li key={item.id}>
+                  <li key={item.id} className="text-sm text-gray-700">
                     {item.quantity}x {item.product.name} — {formatCurrency(item.totalPrice)}
                   </li>
-                )) || <li>No hay detalles registrados</li>}
+                )) || <li className="text-sm text-gray-500">No hay detalles registrados</li>}
               </ul>
             </div>
           )}

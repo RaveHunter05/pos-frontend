@@ -3,12 +3,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { http } from '@/lib/http';
 import type { Invoice } from '@/types/domain';
 import { useCartStore, calculateCartTotals } from '@/store/cart';
-import styles from './PaymentModal.module.css';
 import { Toast } from '@/ui/Toast';
 import { formatCurrency } from '@/lib/format';
+import { useApi } from '../hooks/useApi';
 
 const paymentMethods = ['CASH', 'CARD', 'TRANSFER', 'CHECK'] as const;
 
@@ -35,6 +34,7 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
   }));
   const clear = useCartStore((state) => state.clear);
   const totals = calculateCartTotals({ items, taxRate, discount });
+  const { post } = useApi();
   const {
     register,
     handleSubmit,
@@ -80,8 +80,8 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
           product: { id: item.product.id }
         }))
       };
-      const response = await http.post<Invoice>('/api/invoices', payload);
-      return response.data;
+      const response = await post<Invoice>('/api/invoices', payload);
+      return response;
     },
     onSuccess: (invoice) => {
       clear();
@@ -99,45 +99,72 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
   if (!open) return null;
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.modal} role="dialog" aria-modal="true">
-        <header className={styles.header}>
-          <h3>Confirmar pago</h3>
-          <button type="button" onClick={onClose} className={styles.close}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4" role="dialog" aria-modal="true">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Confirmar pago</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
             ×
           </button>
         </header>
-        <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
-          <div className={styles.field}>
-            <label>Cliente</label>
-            <input type="text" placeholder="Opcional" {...register('customerName')} />
+        <form className="p-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+            <input
+              type="text"
+              placeholder="Opcional"
+              {...register('customerName')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
           </div>
-          <div className={styles.field}>
-            <label>Método de pago</label>
-            <select {...register('paymentMethod')}>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
+            <select
+              {...register('paymentMethod')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
               {paymentMethods.map((method) => (
                 <option key={method} value={method}>
                   {method}
                 </option>
               ))}
             </select>
-            {errors.paymentMethod && <span className={styles.error}>{errors.paymentMethod.message}</span>}
+            {errors.paymentMethod && (
+              <span className="text-sm text-red-600 mt-1 block">{errors.paymentMethod.message}</span>
+            )}
           </div>
-          <div className={styles.field}>
-            <label>Notas</label>
-            <textarea rows={3} {...register('notes')} placeholder="Observaciones opcionales" />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+            <textarea
+              rows={3}
+              {...register('notes')}
+              placeholder="Observaciones opcionales"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
           </div>
-          <section className={styles.summary}>
-            <div>
-              <span>Total a cobrar</span>
-              <strong>{formatCurrency(totals.total)}</strong>
+          <section className="bg-gray-50 rounded-lg p-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Total a cobrar</span>
+              <strong className="text-xl font-bold text-indigo-600">{formatCurrency(totals.total)}</strong>
             </div>
           </section>
-          <footer className={styles.footer}>
-            <button type="button" onClick={onClose} className={styles.secondary}>
+          <footer className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            >
               Cancelar
             </button>
-            <button type="submit" className={styles.primary} disabled={mutation.isPending || !items.length}>
+            <button
+              type="submit"
+              disabled={mutation.isPending || !items.length}
+              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
               Confirmar y emitir factura
             </button>
           </footer>

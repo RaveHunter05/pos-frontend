@@ -2,10 +2,9 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { http } from '@/lib/http';
-import styles from './ChartCard.module.css';
 import type { Order } from '@/types/domain';
 import { formatCurrency } from '@/lib/format';
+import { useApi } from '../../hooks/useApi';
 
 type TopProductsChartProps = {
   from?: string;
@@ -16,11 +15,13 @@ type TopProductsChartProps = {
 export function TopProductsChart({ from, to, title = 'Top productos' }: TopProductsChartProps = {}) {
   const rangeTo = to ? dayjs(to) : dayjs();
   const rangeFrom = from ? dayjs(from) : rangeTo.subtract(30, 'day');
+  const { get } = useApi();
+  
   const ordersQuery = useQuery({
     queryKey: ['orders', 'top-products'],
     queryFn: async () => {
-      const response = await http.get<Order[]>('/api/orders');
-      return response.data;
+      const response = await get<Order[]>('/api/orders');
+      return response;
     }
   });
 
@@ -46,12 +47,12 @@ export function TopProductsChart({ from, to, title = 'Top productos' }: TopProdu
   }, [ordersQuery.data, rangeFrom, rangeTo]);
 
   return (
-    <div className={styles.card}>
-      <header>
-        <h3>{title}</h3>
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <header className="mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       </header>
       {ordersQuery.isLoading ? (
-        <div className={styles.skeleton}>Cargando...</div>
+        <div className="flex items-center justify-center h-64 text-gray-500">Cargando...</div>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={chartData}>

@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import styles from './Toast.module.css';
 
 type ToastProps = {
   message: string;
@@ -16,5 +15,15 @@ export function Toast({ message, variant = 'info', duration = 3000, onClose }: T
     return () => clearTimeout(timeout);
   }, [duration, onClose]);
 
-  return <div className={`${styles.toast} ${styles[variant]}`}>{message}</div>;
+  const variantStyles = {
+    success: 'bg-green-500 text-white',
+    error: 'bg-red-500 text-white',
+    info: 'bg-blue-500 text-white'
+  };
+
+  return (
+    <div className={`fixed bottom-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${variantStyles[variant]}`}>
+      {message}
+    </div>
+  );
 }

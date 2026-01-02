@@ -1,26 +1,27 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { http } from '@/lib/http';
-import styles from './Dashboard.module.css';
 import { SalesByDayChart } from '@/components/Charts/SalesByDay';
 import { TopProductsChart } from '@/components/Charts/TopProducts';
 import { RevenueByCategoryChart } from '@/components/Charts/RevenueByCategory';
 import type { Inventory, Invoice, Order } from '@/types/domain';
 import { formatCurrency } from '@/lib/format';
+import { useApi } from '../hooks/useApi';
 
 export default function Dashboard() {
+  const { get } = useApi();
+  
   const metricsQuery = useQuery({
     queryKey: ['dashboard', 'metrics'],
     queryFn: async () => {
       const [ordersResponse, invoicesResponse, inventoryResponse] = await Promise.all([
-        http.get<Order[]>('/api/orders'),
-        http.get<Invoice[]>('/api/invoices'),
-        http.get<Inventory[]>('/api/inventories')
+        get<Order[]>('/api/orders'),
+        get<Invoice[]>('/api/invoices'),
+        get<Inventory[]>('/api/inventories')
       ]);
       return {
-        orders: ordersResponse.data,
-        invoices: invoicesResponse.data,
-        inventory: inventoryResponse.data
+        orders: ordersResponse,
+        invoices: invoicesResponse,
+        inventory: inventoryResponse
       };
     }
   });
@@ -44,26 +45,34 @@ export default function Dashboard() {
   }, [metricsQuery.data]);
 
   return (
-    <div className={styles.wrapper}>
-      <section className={styles.metrics}>
-        <article className={styles.metricCard}>
-          <span>Ventas totales</span>
-          <strong>{metricsQuery.isLoading ? '...' : formatCurrency(metrics.totalSales)}</strong>
+    <div className="flex flex-col gap-6">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <article className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <span className="text-sm text-gray-600 block mb-2">Ventas totales</span>
+          <strong className="text-2xl font-bold text-gray-900">
+            {metricsQuery.isLoading ? '...' : formatCurrency(metrics.totalSales)}
+          </strong>
         </article>
-        <article className={styles.metricCard}>
-          <span>Órdenes activas</span>
-          <strong>{metricsQuery.isLoading ? '...' : metrics.activeOrders}</strong>
+        <article className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <span className="text-sm text-gray-600 block mb-2">Órdenes activas</span>
+          <strong className="text-2xl font-bold text-gray-900">
+            {metricsQuery.isLoading ? '...' : metrics.activeOrders}
+          </strong>
         </article>
-        <article className={styles.metricCard}>
-          <span>Facturas emitidas</span>
-          <strong>{metricsQuery.isLoading ? '...' : metrics.totalInvoices}</strong>
+        <article className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <span className="text-sm text-gray-600 block mb-2">Facturas emitidas</span>
+          <strong className="text-2xl font-bold text-gray-900">
+            {metricsQuery.isLoading ? '...' : metrics.totalInvoices}
+          </strong>
         </article>
-        <article className={styles.metricCard}>
-          <span>Productos con bajo stock</span>
-          <strong>{metricsQuery.isLoading ? '...' : metrics.lowStock}</strong>
+        <article className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <span className="text-sm text-gray-600 block mb-2">Productos con bajo stock</span>
+          <strong className="text-2xl font-bold text-gray-900">
+            {metricsQuery.isLoading ? '...' : metrics.lowStock}
+          </strong>
         </article>
       </section>
-      <section className={styles.chartsGrid}>
+      <section className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <SalesByDayChart />
         <TopProductsChart />
         <RevenueByCategoryChart />
