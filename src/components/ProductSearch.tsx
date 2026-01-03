@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { Product } from '@/types/domain';
+import type { Product, Inventory } from '@/types/domain';
 import { useCartStore } from '@/store/cart';
 import { Toast } from '@/ui/Toast';
 import { formatCurrency } from '@/lib/format';
 import { useApi } from '../hooks/useApi';
+import { ProductModal } from './ProductModal';
 
 export function ProductSearch() {
   const [search, setSearch] = useState('');
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant?: 'success' | 'error' | 'info' } | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const addProduct = useCartStore((state) => state.addProduct);
   const inputRef = useRef<HTMLInputElement>(null);
   const { get } = useApi();
@@ -33,6 +35,21 @@ export function ProductSearch() {
     staleTime: 60_000
   });
 
+  const inventoryQuery = useQuery({
+    queryKey: ['inventories'],
+    queryFn: async () => {
+      const response = await get<Inventory[]>('/api/inventories');
+      return response;
+    },
+    staleTime: 30_000
+  });
+
+  const getProductStock = (productId: number): number | null => {
+    if (!inventoryQuery.data) return null;
+    const inventory = inventoryQuery.data.find((inv) => inv.product.id === productId);
+    return inventory?.quantity ?? 0;
+  };
+
   const filteredProducts = useMemo(() => {
     if (!search.trim()) return [];
     const normalized = search.trim().toLowerCase();
@@ -45,9 +62,36 @@ export function ProductSearch() {
     ).slice(0, 8);
   }, [productsQuery.data, search]);
 
-  const handleSelect = (product: Product) => {
-    addProduct(product);
-    setToast(`Producto ${product.name} agregado`);
+  const handleSelect = async (product: Product) => {
+    const maxQuantity = getProductStock(product.id);
+
+    if (maxQuantity === null) {
+      setToast({ message: 'Inventario cargando, intenta en un momento', variant: 'info' });
+      return;
+    }
+
+    if (maxQuantity <= 0) {
+      setToast({ message: 'No hay stock disponible para este producto', variant: 'error' });
+      return;
+    }
+
+    const result = addProduct(product, maxQuantity);
+
+    if (result.success) {
+      setToast({ message: `Producto ${product.name} agregado`, variant: 'success' });
+      setSearch('');
+      inputRef.current?.focus();
+    } else {
+      setToast({ message: result.message || 'Error al agregar producto', variant: 'error' });
+    }
+  };
+
+  const handleCreateProduct = () => {
+    setCreateModalOpen(true);
+  };
+
+  const handleProductCreated = () => {
+    setCreateModalOpen(false);
     setSearch('');
     inputRef.current?.focus();
   };
@@ -89,11 +133,24 @@ export function ProductSearch() {
         </div>
       )}
       {!productsQuery.isFetching && search.length > 2 && !filteredProducts.length && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-gray-600">
-          Sin resultados
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+          <div className="text-gray-600 mb-3">No se encontraron productos</div>
+          <button
+            type="button"
+            onClick={handleCreateProduct}
+            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+          >
+            Crear producto
+          </button>
         </div>
       )}
-      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+      {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
+      <ProductModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={handleProductCreated}
+        initialBarCode={search.length > 2 && !filteredProducts.length ? search : undefined}
+      />
     </div>
   );
 }

@@ -10,8 +10,8 @@ export type CartState = {
 };
 
 export type CartActions = {
-  addProduct: (product: Product) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  addProduct: (product: Product, maxQuantity?: number) => { success: boolean; message?: string };
+  updateQuantity: (productId: number, quantity: number, maxQuantity?: number) => { success: boolean; message?: string };
   removeProduct: (productId: number) => void;
   clear: () => void;
   setDiscount: (discount: number) => void;
@@ -24,32 +24,70 @@ const initialState: CartState = {
   discount: 0
 };
 
-export const useCartStore = create<CartState & CartActions>((set) => ({
+export const useCartStore = create<CartState & CartActions>((set, get) => ({
   ...initialState,
-  addProduct: (product) =>
-    set((state) => {
-      const existing = state.items.find((item) => item.product.id === product.id);
-      if (existing) {
+  addProduct: (product, maxQuantity) => {
+    const state = get();
+    const existing = state.items.find((item) => item.product.id === product.id);
+    
+    if (existing) {
+      const newQuantity = existing.quantity + 1;
+      if (maxQuantity !== undefined && newQuantity > maxQuantity) {
+        const available = maxQuantity - existing.quantity;
         return {
-          ...state,
-          items: state.items.map((item) =>
-            item.product.id === product.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          )
+          success: false,
+          message: available > 0 
+            ? `No hay suficiente stock. Puede agregar máximo ${available} unidades más`
+            : `No hay más stock disponible para este producto`
         };
       }
-      return { ...state, items: [...state.items, { product, quantity: 1 }] };
-    }),
-  updateQuantity: (productId, quantity) =>
-    set((state) => ({
-      ...state,
-      items: state.items
-        .map((item) =>
-          item.product.id === productId ? { ...item, quantity } : item
+      set({
+        ...state,
+        items: state.items.map((item) =>
+          item.product.id === product.id
+            ? { ...item, quantity: newQuantity }
+            : item
         )
-        .filter((item) => item.quantity > 0)
-    })),
+      });
+      return { success: true };
+    }
+    
+    if (maxQuantity !== undefined && maxQuantity < 1) {
+      return {
+        success: false,
+        message: `No hay stock disponible para este producto`
+      };
+    }
+    
+    set({ ...state, items: [...state.items, { product, quantity: 1 }] });
+    return { success: true };
+  },
+  updateQuantity: (productId, quantity, maxQuantity) => {
+    if (quantity <= 0) {
+      const state = get();
+      set({
+        ...state,
+        items: state.items.filter((item) => item.product.id !== productId)
+      });
+      return { success: true };
+    }
+    
+    if (maxQuantity !== undefined && quantity > maxQuantity) {
+      return {
+        success: false,
+        message: `Stock máximo disponible: ${maxQuantity} unidades`
+      };
+    }
+    
+    const state = get();
+    set({
+      ...state,
+      items: state.items.map((item) =>
+        item.product.id === productId ? { ...item, quantity } : item
+      )
+    });
+    return { success: true };
+  },
   removeProduct: (productId) =>
     set((state) => ({
       ...state,
