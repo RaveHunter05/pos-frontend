@@ -33,7 +33,7 @@ export default function Categories() {
 	const categoriesQuery = useQuery({
 		queryKey: ['categories'],
 		queryFn: async () => {
-			const response = await get('/api/categories');
+			const response = await get<Category[]>('/api/categories');
 			return response;
 		},
 	});

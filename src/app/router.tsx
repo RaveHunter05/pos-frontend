@@ -10,7 +10,6 @@ import Settings from '@/pages/Settings';
 import Categories from '@/pages/Categories';
 import Inventory from '@/pages/Inventory';
 import Orders from '@/pages/Orders';
-import Landing from '@/pages/Landing';
 import HomePage from '@/pages/HomePage';
 
 export const router = createBrowserRouter([

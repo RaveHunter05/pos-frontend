@@ -27,7 +27,7 @@ export default function Products() {
     mutationFn: async (id: number) => {
       await apiDelete(`/api/products/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       if (editing?.id === id) {
         setEditing(null);

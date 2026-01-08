@@ -8,7 +8,11 @@ const baseURL = import.meta.env.VITE_API_BASE_URL ?? __API_BASE_URL__ ?? '';
 export const useApi = () => {
   const { getToken } = useAuth();
 
-  const authRequest = useCallback(async (method: 'get' | 'post' | 'put' | 'delete', url: string, data?: any) => {
+  const authRequest = useCallback(async <T,>(
+    method: 'get' | 'post' | 'put' | 'delete',
+    url: string,
+    data?: any
+  ): Promise<T> => {
     const token = await getToken();
     
     const config = {
@@ -35,16 +39,16 @@ export const useApi = () => {
         default:
           throw new Error(`Método HTTP no soportado: ${method}`);
       }
-      return response.data;
+      return response.data as T;
     } catch (error) {
       throw error;
     }
   }, [getToken]);
 
   return {
-    get: (url: string) => authRequest('get', url),
-    post: (url: string, data: any) => authRequest('post', url, data),
-    put: (url: string, data: any) => authRequest('put', url, data),
-    apiDelete: (url: string) => authRequest('delete', url)
+    get: <T,>(url: string) => authRequest<T>('get', url),
+    post: <T,>(url: string, data: any) => authRequest<T>('post', url, data),
+    put: <T,>(url: string, data: any) => authRequest<T>('put', url, data),
+    apiDelete: <T,>(url: string) => authRequest<T>('delete', url)
   };
 };

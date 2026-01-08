@@ -3,6 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { SalesByDayChart } from '@/components/Charts/SalesByDay';
 import { TopProductsChart } from '@/components/Charts/TopProducts';
 import { RevenueByCategoryChart } from '@/components/Charts/RevenueByCategory';
+import { SalesByWeekdayChart } from '@/components/Charts/SalesByWeekday';
+import { SalesByPaymentMethodChart } from '@/components/Charts/SalesByPaymentMethod';
+import { InvoiceStatusChart } from '@/components/Charts/InvoiceStatus';
 import type { Inventory, Invoice, Order } from '@/types/domain';
 import { formatCurrency } from '@/lib/format';
 import { useApi } from '../hooks/useApi';
@@ -76,6 +79,9 @@ export default function Dashboard() {
         <SalesByDayChart />
         <TopProductsChart />
         <RevenueByCategoryChart />
+        <SalesByWeekdayChart />
+        <SalesByPaymentMethodChart />
+        <InvoiceStatusChart />
       </section>
     </div>
   );

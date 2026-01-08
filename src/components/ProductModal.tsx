@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -57,7 +58,7 @@ export function ProductModal({ open, onClose, onSuccess, editing, initialBarCode
   });
 
   useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
+    const handler = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
       }
@@ -121,6 +122,13 @@ export function ProductModal({ open, onClose, onSuccess, editing, initialBarCode
 
   const onSubmit = (values: ProductFormValues) => {
     upsertMutation.mutate(values);
+  };
+
+  const handleBarCodeKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      // Avoid auto-submitting the form when a scanner sends Enter after the barcode
+      event.preventDefault();
+    }
   };
 
   if (!open) return null;
@@ -188,6 +196,7 @@ export function ProductModal({ open, onClose, onSuccess, editing, initialBarCode
                 type="text"
                 {...register('barCode')}
                 placeholder="Opcional"
+                onKeyDown={handleBarCodeKeyDown}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
