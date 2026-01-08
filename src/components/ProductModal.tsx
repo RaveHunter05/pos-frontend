@@ -10,128 +10,134 @@ import { buildFormBody } from '@/lib/forms';
 import { useApi } from '../hooks/useApi';
 
 const productSchema = z.object({
-  sku: z.string().min(1, 'El SKU es obligatorio'),
-  name: z.string().min(1, 'El nombre es obligatorio'),
-  brand: z.string().optional(),
-  description: z.string().optional(),
-  barCode: z.string().optional(),
-  measureUnit: z.string().optional(),
-  costPrice: z.coerce.number().min(0, 'El precio debe ser mayor o igual a 0'),
-  taxPercentage: z.coerce.number().min(0).max(100).optional(),
-  isActive: z.boolean().default(true),
+	sku: z.string().min(1, 'El SKU es obligatorio'),
+	name: z.string().min(1, 'El nombre es obligatorio'),
+	brand: z.string().optional(),
+	description: z.string().optional(),
+	barCode: z.string().optional(),
+	measureUnit: z.string().optional(),
+	costPrice: z.coerce.number().min(0, 'El precio debe ser mayor o igual a 0'),
+	taxPercentage: z.coerce.number().min(0).max(100).optional(),
+	isActive: z.boolean().default(true),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
 type ProductModalProps = {
-  open: boolean;
-  onClose: () => void;
-  onSuccess?: () => void;
-  editing?: Product | null;
-  initialBarCode?: string;
+	open: boolean;
+	onClose: () => void;
+	onSuccess?: () => void;
+	editing?: Product | null;
+	initialBarCode?: string;
 };
 
-export function ProductModal({ open, onClose, onSuccess, editing, initialBarCode }: ProductModalProps) {
-  const queryClient = useQueryClient();
-  const { get, post, put } = useApi();
+export function ProductModal({
+	open,
+	onClose,
+	onSuccess,
+	editing,
+	initialBarCode,
+}: ProductModalProps) {
+	const queryClient = useQueryClient();
+	const { get, post, put } = useApi();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
-    defaultValues: {
-      isActive: true,
-      taxPercentage: 0,
-      barCode: initialBarCode || '',
-    },
-  });
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors },
+	} = useForm<ProductFormValues>({
+		resolver: zodResolver(productSchema),
+		defaultValues: {
+			isActive: true,
+			taxPercentage: 0,
+			barCode: initialBarCode || '',
+		},
+	});
 
-  const categoriesQuery = useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const response = await get('/api/categories') as Category[];
-      return response;
-    },
-  });
+	const categoriesQuery = useQuery({
+		queryKey: ['categories'],
+		queryFn: async () => {
+			const response = (await get('/api/categories')) as Category[];
+			return response;
+		},
+	});
 
-  useEffect(() => {
-    const handler = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-    if (open) {
-      window.addEventListener('keydown', handler);
-    }
-    return () => window.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+	useEffect(() => {
+		const handler = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				onClose();
+			}
+		};
+		if (open) {
+			window.addEventListener('keydown', handler);
+		}
+		return () => window.removeEventListener('keydown', handler);
+	}, [open, onClose]);
 
-  useEffect(() => {
-    if (open) {
-      if (editing) {
-        reset({
-          sku: editing.sku,
-          name: editing.name,
-          brand: editing.brand,
-          description: editing.description,
-          barCode: editing.barCode,
-          measureUnit: editing.measureUnit,
-          costPrice: editing.costPrice,
-          taxPercentage: editing.taxPercentage ?? 0,
-          isActive: editing.isActive,
-        });
-      } else {
-        reset({
-          sku: '',
-          name: '',
-          brand: '',
-          description: '',
-          barCode: initialBarCode || '',
-          measureUnit: '',
-          costPrice: 0,
-          taxPercentage: 0,
-          isActive: true,
-        });
-      }
-    }
-  }, [open, editing, initialBarCode, reset]);
+	useEffect(() => {
+		if (open) {
+			if (editing) {
+				reset({
+					sku: editing.sku,
+					name: editing.name,
+					brand: editing.brand,
+					description: editing.description,
+					barCode: editing.barCode,
+					measureUnit: editing.measureUnit,
+					costPrice: editing.costPrice,
+					taxPercentage: editing.taxPercentage ?? 0,
+					isActive: editing.isActive,
+				});
+			} else {
+				reset({
+					sku: '',
+					name: '',
+					brand: '',
+					description: '',
+					barCode: initialBarCode || '',
+					measureUnit: '',
+					costPrice: 0,
+					taxPercentage: 0,
+					isActive: true,
+				});
+			}
+		}
+	}, [open, editing, initialBarCode, reset]);
 
-  const upsertMutation = useMutation({
-    mutationFn: async (values: ProductFormValues) => {
-      const body = buildFormBody(values);
-      if (editing) {
-        const response = await put(`/api/products/${editing.id}`, body);
-        return response;
-      }
-      const response = await post('/api/products', body);
-      return response;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['products', 'search'] });
-      reset();
-      onClose();
-      if (onSuccess) {
-        onSuccess();
-      }
-    },
-  });
+	const upsertMutation = useMutation({
+		mutationFn: async (values: ProductFormValues) => {
+			const body = buildFormBody(values);
+			if (editing) {
+				const response = await put(`/api/products/${editing.id}`, body);
+				return response;
+			}
+			const response = await post('/api/products', body);
+			return response;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['products'] });
+			queryClient.invalidateQueries({ queryKey: ['products', 'search'] });
+			reset();
+			onClose();
+			if (onSuccess) {
+				onSuccess();
+			}
+		},
+	});
+
+	const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+		// Prevenir que Enter en cualquier campo haga submit
+		if (e.key === 'Enter') {
+			e.preventDefault();
+		}
+	};
 
   const onSubmit = (values: ProductFormValues) => {
     upsertMutation.mutate(values);
   };
 
-  const handleBarCodeKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      // Avoid auto-submitting the form when a scanner sends Enter after the barcode
-      event.preventDefault();
-    }
-  };
-
-  if (!open) return null;
+	if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -196,7 +202,6 @@ export function ProductModal({ open, onClose, onSuccess, editing, initialBarCode
                 type="text"
                 {...register('barCode')}
                 placeholder="Opcional"
-                onKeyDown={handleBarCodeKeyDown}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
@@ -278,4 +283,3 @@ export function ProductModal({ open, onClose, onSuccess, editing, initialBarCode
     </div>
   );
 }
-
