@@ -101,3 +101,37 @@ export type CartItem = {
   quantity: number;
   discount?: number;
 };
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'user' | 'manager';
+  store?: {
+    id: string;
+    name: string;
+    address?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Store {
+  id: string;
+  name: string;
+  address?: string;
+  userIds: string[];
+}
+
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ApiResponse<T> {
+  data: T;
+  pagination?: Pagination;
+  message?: string;
+}
