@@ -105,7 +105,7 @@ export type CartItem = {
 export interface User {
   id: string;
   email: string;
-  name: string;
+  firstName: string;
   role: 'admin' | 'user' | 'manager';
   store?: {
     id: string;
