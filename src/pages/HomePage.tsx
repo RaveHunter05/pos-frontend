@@ -1,3 +1,4 @@
+import { ExampleCombobox } from '@/components/ExampleCombobox';
 import {
 	SignedOut,
 	SignInButton,
@@ -48,6 +49,7 @@ const HomePage = () => {
 					<h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
 						Sistema de Punto de Venta
 					</h1>
+
 					<p className="text-xl text-gray-600 mb-8 leading-relaxed">
 						Gestiona tu inventario, productos, pedidos y facturas de manera
 						eficiente. Una solución completa para tu negocio.

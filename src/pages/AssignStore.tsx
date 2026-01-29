@@ -1,38 +1,39 @@
+import { ExampleCombobox } from '@/components/ExampleCombobox';
+import { Button } from '@/components/ui/button';
 import {
 	Combobox,
+	ComboboxContent,
+	ComboboxEmpty,
 	ComboboxInput,
-	ComboboxOption,
-	ComboboxOptions,
-} from '@headlessui/react';
-import { useState } from 'react';
+	ComboboxItem,
+	ComboboxList,
+} from '@/components/ui/combobox';
 
-const people = [
-	{ id: 1, name: 'Durward Reynolds' },
-	{ id: 2, name: 'Kenton Towne' },
-	{ id: 3, name: 'Therese Wunsch' },
-	{ id: 4, name: 'Benedict Kessler' },
-	{ id: 5, name: 'Katelyn Rohan' },
-];
+type Framework = {
+	label: string;
+	value: string;
+};
 
 const AssignStore = () => {
-	const [selectedPerson, setSelectedPerson] = useState(people[0]);
-	const [query, setQuery] = useState('');
-
-	const filteredPeople =
-		query === ''
-			? people
-			: people.filter((person) => {
-				return person.name.toLowerCase().includes(query.toLowerCase());
-			});
 	return (
-		<div className="w-1/2">
+		<div className="flex flex-col space-y-4 w-1/2">
+			<p className="text-orange-500">
+				⚠️⚠️⚠️ (Only Admins Should Be Allowed) ⚠️⚠️⚠️
+			</p>
 			<section>
 				<h2> Seleccione un usuario </h2>
+				<ExampleCombobox />
 			</section>
 
 			<section className="mt-8">
 				<h2> Seleccione un negocio </h2>
+
+				<ExampleCombobox />
 			</section>
+
+			<Button className="bg-indigo-600 hover:bg-white hover:text-indigo-600 hover:border hover:border-2 hover:cursor-pointer hover:border-indigo-600">
+				Asignar Rol
+			</Button>
 		</div>
 	);
 };
