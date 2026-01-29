@@ -3,9 +3,8 @@
     // ...
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"],
+      "@/app/router": ["./src/app/router.js"]
     }
     // ...
   }
