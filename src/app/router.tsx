@@ -11,6 +11,7 @@ import Categories from '@/pages/Categories';
 import Inventory from '@/pages/Inventory';
 import Orders from '@/pages/Orders';
 import HomePage from '@/pages/HomePage';
+import AssignStore from '@/pages/AssignStore';
 
 export const router = createBrowserRouter([
 	{
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
 		children: [
 			{ index: true, element: <Navigate to="/" replace /> },
 			{ path: 'dashboard', element: <Dashboard /> },
+			{ path: 'assign-store', element: <AssignStore /> },
 			{ path: 'pos', element: <Pos /> },
 			{ path: 'products', element: <Products /> },
 			{ path: 'categories', element: <Categories /> },
