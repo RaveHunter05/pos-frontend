@@ -2,6 +2,7 @@ import { http } from '@/lib/http';
 import { useState, useEffect, useCallback } from 'react';
 import { useApi } from './useApi';
 import { useAuth } from '@clerk/clerk-react';
+import { User } from '@/types/domain';
 
 export const useUsers = () => {
 	const [users, setUsers] = useState([]);

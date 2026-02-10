@@ -8,20 +8,24 @@ import {
 	useComboboxAnchor,
 } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
+import useStoreAssignments from '@/hooks/useStoreAssignments';
 import useStores from '@/hooks/useStores';
 import useUsers from '@/hooks/useUsers';
+import { STORE_ROLE } from '@/types/domain';
 import { useEffect, useState } from 'react';
 
+const shopRoles: STORE_ROLE[] = [
+	STORE_ROLE.OWNER,
+	STORE_ROLE.MANAGER,
+	STORE_ROLE.SUPERVISOR,
+	STORE_ROLE.CASHIER,
+	STORE_ROLE.EMPLOYEE,
+	STORE_ROLE.VIEWER,
+];
+
 const AssignStore = () => {
-	const {
-		users,
-		loading,
-		error,
-		selectedUser,
-		setSelectedUser,
-		fetchUsers,
-		isAdmin,
-	} = useUsers();
+	const { users, loading, error, selectedUser, setSelectedUser, fetchUsers } =
+		useUsers();
 
 	const {
 		stores,
@@ -32,13 +36,29 @@ const AssignStore = () => {
 		setSelectedStore,
 	} = useStores();
 
+	const { assignRole } = useStoreAssignments();
+
+	const [selectedRole, setSelectedRole] = useState<string>();
+
 	const [page, setPage] = useState(1);
 
+	// @TODO: fix this
+	const handleAssignStoreRole = () => {
+		return assignRole({
+			clerkId: selectedUser.clerkId,
+			storeId: selectedStore?.id.toString() || '',
+			role: selectedRole || '',
+		});
+	};
+
+	// Assign anchor to combobox
 	// Si no se utiliza anchor no funciona bien el componente de Combobox de Shadcn
 	const anchor = useComboboxAnchor();
 
 	// Si no se utiliza anchor no funciona bien el componente de Combobox de Shadcn
 	const storeAnchor = useComboboxAnchor();
+
+	const roleAnchor = useComboboxAnchor();
 
 	useEffect(() => {
 		fetchUsers(page);
@@ -66,7 +86,6 @@ const AssignStore = () => {
 				⚠️⚠️⚠️ (Only Admins Should Be Allowed) ⚠️⚠️⚠️
 			</p>
 
-			{JSON.stringify(selectedUser, null, 2)}
 			<section>
 				<h2> Seleccione un usuario </h2>
 				<div ref={anchor} className="w-full">
@@ -122,7 +141,38 @@ const AssignStore = () => {
 				</div>
 			</section>
 
-			<Button className="bg-indigo-600 hover:bg-white hover:text-indigo-600 hover:border hover:border-2 hover:cursor-pointer hover:border-indigo-600">
+			<section className="mt-8">
+				<h2> Seleccione un rol dentro de la tienda </h2>
+
+				<div ref={roleAnchor} className="w-full">
+					<Combobox
+						items={shopRoles}
+						value={selectedRole}
+						onValueChange={setSelectedRole}
+					>
+						<ComboboxInput
+							placeholder="Select a framework"
+							value={selectedRole}
+							readOnly
+						/>
+
+						<ComboboxContent anchor={roleAnchor}>
+							<ComboboxList>
+								{(item) => (
+									<ComboboxItem key={item} value={item}>
+										{item}
+									</ComboboxItem>
+								)}
+							</ComboboxList>
+						</ComboboxContent>
+					</Combobox>
+				</div>
+			</section>
+
+			<Button
+				className="bg-indigo-600 hover:bg-white hover:text-indigo-600 hover:border hover:border-2 hover:cursor-pointer hover:border-indigo-600 mt-8"
+				onClick={handleAssignStoreRole}
+			>
 				Asignar Rol
 			</Button>
 		</div>
