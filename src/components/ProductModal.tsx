@@ -108,11 +108,14 @@ export function ProductModal({
 	const upsertMutation = useMutation({
 		mutationFn: async (values: ProductFormValues) => {
 			const body = buildFormBody(values);
+
 			if (editing) {
 				const response = await put(`/api/products/${editing.id}`, body);
 				return response;
 			}
+
 			const response = await post('/api/products', body);
+
 			return response;
 		},
 		onSuccess: () => {

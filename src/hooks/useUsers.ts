@@ -2,6 +2,7 @@ import { http } from '@/lib/http';
 import { useState, useEffect, useCallback } from 'react';
 import { useApi } from './useApi';
 import { useAuth } from '@clerk/clerk-react';
+import { User } from '@/types/domain';
 
 export const useUsers = () => {
 	const [users, setUsers] = useState([]);
@@ -19,7 +20,7 @@ export const useUsers = () => {
 	const { getToken } = useAuth();
 
 	// Función para obtener todos los usuarios
-	const fetchUsers = useCallback(async (page = 1, limit = 10) => {
+	const fetchUsers = useCallback(async () => {
 		setLoading(true);
 		setError(null);
 
@@ -27,8 +28,6 @@ export const useUsers = () => {
 			const token = await getToken();
 
 			const response = await http.get('/api/users', {
-				params: { page, limit },
-
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
