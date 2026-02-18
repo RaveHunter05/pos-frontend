@@ -38,7 +38,7 @@ export const useStoreAssignments = () => {
 				const response = await http.post(
 					'/api/store-assignments',
 					{
-						clerkId,
+						clerkId:"user_2vTioz6ppxdioDHyrQhAFC3wrnR",
 						storeId,
 						role,
 					},

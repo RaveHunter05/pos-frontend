@@ -34,6 +34,8 @@ export default function Categories() {
 		queryKey: ['categories'],
 		queryFn: async () => {
 			const response = await get<Category[]>('/api/categories');
+
+			console.log(`Categories: ${response}`)
 			return response;
 		},
 	});

@@ -53,7 +53,7 @@ const AssignStore = () => {
 
 	// Assign anchor to combobox
 	// Si no se utiliza anchor no funciona bien el componente de Combobox de Shadcn
-	const anchor = useComboboxAnchor();
+	const userAnchor = useComboboxAnchor();
 
 	// Si no se utiliza anchor no funciona bien el componente de Combobox de Shadcn
 	const storeAnchor = useComboboxAnchor();
@@ -88,22 +88,22 @@ const AssignStore = () => {
 
 			<section>
 				<h2> Seleccione un usuario </h2>
-				<div ref={anchor} className="w-full">
+				<div ref={userAnchor} className="w-full cursor-pointer">
 					<Combobox
 						items={users}
 						value={selectedUser}
 						onValueChange={setSelectedUser}
 					>
 						<ComboboxInput
-							placeholder="Select a framework"
+							placeholder="Select a user"
 							value={selectedUser?.firstName}
 							readOnly
 						/>
 
-						<ComboboxContent anchor={anchor}>
+						<ComboboxContent anchor={userAnchor}>
 							<ComboboxList>
 								{(item) => (
-									<ComboboxItem key={item.clerkId} value={item}>
+									<ComboboxItem key={item.id} value={item}>
 										{item.firstName}
 									</ComboboxItem>
 								)}
@@ -123,7 +123,7 @@ const AssignStore = () => {
 						onValueChange={setSelectedStore}
 					>
 						<ComboboxInput
-							placeholder="Select a framework"
+							placeholder="Select a store"
 							value={selectedStore?.name}
 							readOnly
 						/>
