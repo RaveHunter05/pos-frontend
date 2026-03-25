@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useCartStore, calculateCartTotals } from '@/store/cart';
 import { formatCurrency } from '@/lib/format';
-import type { Inventory } from '@/types/domain';
+import type { ProductInventoryInfo } from '@/types/domain';
 import { useApi } from '../hooks/useApi';
 import { Toast } from '@/ui/Toast';
 
@@ -23,17 +23,11 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
   const inventoryQuery = useQuery({
     queryKey: ['inventories'],
     queryFn: async () => {
-      const response = await get<Inventory[]>('/api/inventories');
+      const response = await get<ProductInventoryInfo[]>('/api/inventories');
       return response;
     },
     staleTime: 30_000
   });
-
-  const getProductStock = (productId: number): number | null => {
-    if (!inventoryQuery.data) return null;
-    const inventory = inventoryQuery.data.find((inv) => inv.product.id === productId);
-    return inventory?.quantity ?? 0;
-  };
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -64,7 +58,7 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
     if (!inventoryQuery.data) return;
 
     items.forEach((item) => {
-      const stock = getProductStock(item.product.id);
+      const stock = item.quantity;
       if (stock !== null && item.quantity > stock) {
         updateQuantity(item.product.id, stock, stock);
         setToast({
@@ -85,8 +79,8 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
       </header>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {items.map((item) => {
-          const stock = getProductStock(item.product.id);
-          const available = stock !== null ? stock - item.quantity : null;
+          const stock = item.quantity;
+          const available = stock !== null ? stock  : null;
 
           return (
             <div key={item.product.id} className="border border-gray-200 rounded-lg p-3">
@@ -103,7 +97,7 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
                     value={item.quantity}
                     onChange={(event) => {
                       const newQuantity = Number(event.target.value);
-                      const maxQuantity = getProductStock(item.product.id);
+                      const maxQuantity = item.quantity;
 
                       if (Number.isNaN(newQuantity)) return;
 
@@ -198,7 +192,7 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
           disabled={!items.length}
           className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          Cobrar (F7)
+          Facturar (F7)
         </button>
       </div>
       {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
