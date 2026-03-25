@@ -28,6 +28,18 @@ export type Product = {
 	productCategories?: Category[];
 };
 
+export type ProductInventoryInfo = {
+	quantity: number;
+	sku: string;
+	brand: string;
+	name: string;
+	description: string;
+	barCode: string;
+	measureUnit: string;
+	isActive: boolean;
+	sellPrice: number;
+};
+
 export type Inventory = {
 	id: number;
 	quantity: number;

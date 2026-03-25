@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { Product, Inventory } from '@/types/domain';
+import type { Product, Inventory, ProductInventoryInfo } from '@/types/domain';
 import { useCartStore } from '@/store/cart';
 import { Toast } from '@/ui/Toast';
 import { formatCurrency } from '@/lib/format';
@@ -29,26 +29,11 @@ export function ProductSearch() {
   const productsQuery = useQuery({
     queryKey: ['products', 'search'],
     queryFn: async () => {
-      const response = await get<Product[]>('/api/products');
+      const response = await get<ProductInventoryInfo[]>('/api/inventories');
       return response;
     },
     staleTime: 60_000
   });
-
-  const inventoryQuery = useQuery({
-    queryKey: ['inventories'],
-    queryFn: async () => {
-      const response = await get<Inventory[]>('/api/inventories');
-      return response;
-    },
-    staleTime: 30_000
-  });
-
-  const getProductStock = (productId: number): number | null => {
-    if (!inventoryQuery.data) return null;
-    const inventory = inventoryQuery.data.find((inv) => inv.product.id === productId);
-    return inventory?.quantity ?? 0;
-  };
 
   const filteredProducts = useMemo(() => {
     if (!search.trim()) return [];
@@ -63,9 +48,7 @@ export function ProductSearch() {
   }, [productsQuery.data, search]);
 
   const handleSelect = async (product: Product) => {
-    const maxQuantity = getProductStock(product.id);
-
-    if (maxQuantity === null) {
+    /*if (maxQuantity === null) {
       setToast({ message: 'Inventario cargando, intenta en un momento', variant: 'info' });
       return;
     }
@@ -74,8 +57,8 @@ export function ProductSearch() {
       setToast({ message: 'No hay stock disponible para este producto', variant: 'error' });
       return;
     }
-
-    const result = addProduct(product, maxQuantity);
+*/
+    const result = addProduct(product, 1);
 
     if (result.success) {
       setToast({ message: `Producto ${product.name} agregado`, variant: 'success' });
@@ -127,7 +110,7 @@ export function ProductSearch() {
                 <strong className="block text-gray-900">{product.name}</strong>
                 <small className="text-xs text-gray-500">{product.sku}</small>
               </span>
-              <span className="font-semibold text-gray-900">{formatCurrency(product.costPrice ?? 0)}</span>
+              <span className="font-semibold text-gray-900">{formatCurrency(product.sellPrice ?? 0)}</span>
             </button>
           ))}
         </div>

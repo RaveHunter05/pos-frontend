@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CartItem, Product } from '@/types/domain';
+import type { CartItem, Product, ProductInventoryInfo } from '@/types/domain';
 
 export type CartState = {
   items: CartItem[];
@@ -10,7 +10,7 @@ export type CartState = {
 };
 
 export type CartActions = {
-  addProduct: (product: Product, maxQuantity?: number) => { success: boolean; message?: string };
+  addProduct: (product: ProductInventoryInfo, maxQuantity?: number) => { success: boolean; message?: string };
   updateQuantity: (productId: number, quantity: number, maxQuantity?: number) => { success: boolean; message?: string };
   removeProduct: (productId: number) => void;
   clear: () => void;
@@ -26,14 +26,12 @@ const initialState: CartState = {
 
 export const useCartStore = create<CartState & CartActions>((set, get) => ({
   ...initialState,
-  addProduct: (product, maxQuantity) => {
+  addProduct: (product, addQuantity) => {
     const state = get();
-    const existing = state.items.find((item) => item.product.id === product.id);
     
-    if (existing) {
-      const newQuantity = existing.quantity + 1;
-      if (maxQuantity !== undefined && newQuantity > maxQuantity) {
-        const available = maxQuantity - existing.quantity;
+      const newQuantity = addQuantity + 1;
+      if ( newQuantity > product.quantity) {
+        const available = product.quantity;
         return {
           success: false,
           message: available > 0 
@@ -50,7 +48,6 @@ export const useCartStore = create<CartState & CartActions>((set, get) => ({
         )
       });
       return { success: true };
-    }
     
     if (maxQuantity !== undefined && maxQuantity < 1) {
       return {
