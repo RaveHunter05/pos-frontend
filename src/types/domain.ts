@@ -22,13 +22,14 @@ export type Product = {
 	description?: string;
 	barCode?: string;
 	measureUnit?: string;
-	costPrice: number;
+	sellPrice: number;
 	isActive: boolean;
 	taxPercentage?: number;
 	productCategories?: Category[];
 };
 
 export type ProductInventoryInfo = {
+	id: number;
 	quantity: number;
 	sku: string;
 	brand: string;

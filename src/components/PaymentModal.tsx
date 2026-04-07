@@ -75,11 +75,13 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
         invoiceItems: items.map((item) => ({
           description: item.product.name,
           quantity: item.quantity,
-          unitPrice: item.product.costPrice ?? 0,
-          totalPrice: (item.product.costPrice ?? 0) * item.quantity,
+          unitPrice: item.product.sellPrice ?? 0,
+          totalPrice: (item.product.sellPrice ?? 0) * item.quantity,
           product: { id: item.product.id }
         }))
       };
+
+      // @TODO: gestionar todo esto en el backend para que lo haga de una vez
       const response = await post<Invoice>('/api/invoices', payload);
       return response;
     },
