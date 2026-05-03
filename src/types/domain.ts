@@ -22,6 +22,7 @@ export type Product = {
 	description?: string;
 	barCode?: string;
 	measureUnit?: string;
+	costPrice: number;
 	sellPrice: number;
 	isActive: boolean;
 	taxPercentage?: number;
