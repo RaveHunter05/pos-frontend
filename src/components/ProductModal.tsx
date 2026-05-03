@@ -1,13 +1,12 @@
 import { useEffect } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { Product, Category } from '@/types/domain';
-import { Toast } from '@/ui/Toast';
+import type { Product } from '@/types/domain';
 import { buildFormBody } from '@/lib/forms';
 import { useApi } from '../hooks/useApi';
+import toast from 'react-hot-toast';
 
 const productSchema = z.object({
 	sku: z.string().min(1, 'El SKU es obligatorio'),
@@ -17,6 +16,7 @@ const productSchema = z.object({
 	barCode: z.string().optional(),
 	measureUnit: z.string().optional(),
 	costPrice: z.coerce.number().min(0, 'El precio debe ser mayor o igual a 0'),
+	sellPrice: z.coerce.number().min(0, 'El precio debe ser mayor o igual a 0'),
 	taxPercentage: z.coerce.number().min(0).max(100).optional(),
 	isActive: z.boolean().default(true),
 });
@@ -39,7 +39,7 @@ export function ProductModal({
 	initialBarCode,
 }: ProductModalProps) {
 	const queryClient = useQueryClient();
-	const { get, post, put } = useApi();
+	const { post, put } = useApi();
 
 	const {
 		register,
@@ -78,6 +78,7 @@ export function ProductModal({
 					barCode: editing.barCode,
 					measureUnit: editing.measureUnit,
 					costPrice: editing.costPrice,
+					sellPrice: editing.sellPrice,
 					taxPercentage: editing.taxPercentage ?? 0,
 					isActive: editing.isActive,
 				});
@@ -90,6 +91,7 @@ export function ProductModal({
 					barCode: initialBarCode || '',
 					measureUnit: '',
 					costPrice: 0,
+					sellPrice: 0,
 					taxPercentage: 0,
 					isActive: true,
 				});
@@ -104,10 +106,21 @@ export function ProductModal({
 			console.log({ body });
 
 			if (editing) {
-				const response = await put(`/api/products/${editing.id}`, body);
+				const response = toast.promise(
+					put(`/api/products/${editing.id}`, body),
+					{
+						loading: 'Actualizando producto...',
+						success: <b>Producto actualizado exitosamente</b>,
+						error: <b>Error: No se pudo actualizar producto</b>,
+					},
+				);
 				return response;
 			} else {
-				const response = await post('/api/products', body);
+				const response = toast.promise(post('/api/products', body), {
+					loading: 'Actualizando producto...',
+					success: <b>Producto creado exitosamente</b>,
+					error: <b>Error: No se pudo crear producto</b>,
+				});
 
 				return response;
 			}
@@ -260,6 +273,23 @@ export function ProductModal({
 						</div>
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Precio de venta *
+							</label>
+							<input
+								type="number"
+								step="0.01"
+								{...register('sellPrice')}
+								placeholder="0.00"
+								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+							/>
+							{errors.sellPrice && (
+								<span className="text-sm text-red-600 mt-1 block">
+									{errors.sellPrice.message}
+								</span>
+							)}
+						</div>
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
 								Porcentaje de impuesto (%)
 							</label>
 							<input
@@ -298,24 +328,6 @@ export function ProductModal({
 						</button>
 					</footer>
 				</form>
-				{upsertMutation.isError && (
-					<Toast
-						message="Error al guardar el producto. Intente nuevamente."
-						variant="error"
-						onClose={() => upsertMutation.reset()}
-					/>
-				)}
-				{upsertMutation.isSuccess && (
-					<Toast
-						message={
-							editing
-								? 'Producto actualizado correctamente'
-								: 'Producto creado correctamente'
-						}
-						variant="success"
-						onClose={() => upsertMutation.reset()}
-					/>
-				)}
 			</div>
 		</div>
 	);

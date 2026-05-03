@@ -32,17 +32,16 @@ export function AppShell() {
 	return (
 		<div className="grid grid-cols-[260px_1fr] min-h-screen">
 			<aside className="bg-gray-900 text-gray-100 p-6 flex flex-col gap-6">
-				<div className="text-xl font-bold">POS PyME</div>
+				<div className="text-xl font-bold">POS Mercadito</div>
 				<nav className="flex flex-col gap-2">
 					{navigation.map((item) => (
 						<NavLink
 							key={item.to}
 							to={item.to}
 							className={({ isActive }) =>
-								`px-4 py-3 rounded-lg transition-colors ${
-									isActive
-										? 'bg-indigo-600 text-white'
-										: 'text-gray-300 hover:bg-white/10'
+								`px-4 py-3 rounded-lg transition-colors ${isActive
+									? 'bg-indigo-600 text-white'
+									: 'text-gray-300 hover:bg-white/10'
 								}`
 							}
 						>

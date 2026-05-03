@@ -9,7 +9,7 @@ type Receipt80mmProps = {
 export const Receipt80mm = forwardRef<HTMLDivElement, Receipt80mmProps>(({ invoice }, ref) => {
   return (
     <div ref={ref} className="w-80 mx-auto p-4 font-mono text-sm" style={{ fontFamily: 'monospace' }}>
-      <h1 className="text-center text-xl font-bold mb-2">POS PyME</h1>
+      <h1 className="text-center text-xl font-bold mb-2">POS Mercadito</h1>
       <p className="text-center mb-1">Factura #{invoice.invoiceNumber}</p>
       <p className="text-center mb-4">Fecha: {formatDateTime(invoice.createdAt ?? invoice.issueDate)}</p>
       <hr className="border-gray-300 my-4" />
