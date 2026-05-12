@@ -40,6 +40,7 @@ export type ProductInventoryInfo = {
 	measureUnit: string;
 	isActive: boolean;
 	sellPrice: number;
+	product_id: number;
 };
 
 export type Inventory = {
@@ -83,7 +84,7 @@ export type Order = {
 	notes?: string;
 	createdAt?: string;
 	updatedAt?: string;
-	orderItems?: OrderItem[];
+	items?: OrderItem[];
 };
 
 export type InvoiceItem = {
@@ -117,7 +118,7 @@ export type Invoice = {
 };
 
 export type CartItem = {
-	product: Product;
+	product: ProductInventoryInfo;
 	quantity: number;
 	discount?: number;
 };

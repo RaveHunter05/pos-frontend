@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { Invoice } from '@/types/domain';
+import type { Order } from '@/types/domain';
 import { useCartStore, calculateCartTotals } from '@/store/cart';
 import { Toast } from '@/ui/Toast';
 import { formatCurrency } from '@/lib/format';
@@ -14,9 +14,16 @@ const paymentMethods = ['CASH', 'CARD', 'TRANSFER', 'CHECK'] as const;
 const paymentSchema = z.object({
 	client: z.string().optional(),
 	clientPhone: z.string().optional(),
-	deliveryAddress: z.string().optional(),
-	paymentMethod: z.enum(paymentMethods),
 	clientNotes: z.string().optional(),
+	deliveryAddress: z.string().optional(),
+	deliveryFee: z.coerce
+		.number()
+		.min(0, 'El costo del delivery debe ser mayor o igual a 0'),
+	paymentMethod: z.enum(paymentMethods),
+	taxRate: z.coerce
+		.number()
+		.min(0, 'El impuesto debe ser mayor o igual a 0')
+		.optional(),
 });
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
@@ -24,7 +31,7 @@ type PaymentFormValues = z.infer<typeof paymentSchema>;
 type PaymentModalProps = {
 	open: boolean;
 	onClose: () => void;
-	onSuccess: (invoice: Invoice) => void;
+	onSuccess: (order: Order) => void;
 };
 
 export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
@@ -64,35 +71,35 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 	const mutation = useMutation({
 		mutationFn: async (values: PaymentFormValues) => {
 			// @TODO: checar que todo coincida con el DTO del backend
+			//
 			const taxableBase = totals.subtotal > 0 ? totals.subtotal : 1;
+
 			const payload = {
-				invoiceNumber: `INV-${Date.now()}`,
 				issueDate: new Date().toISOString().slice(0, 10),
 				subtotal: totals.subtotal,
 				taxAmount: totals.tax,
 				totalAmount: totals.total,
 				taxRate: Number(((totals.tax / taxableBase) * 100).toFixed(2)),
-				status: 'PAID',
+				status: 'DRAFT',
 				paymentMethod: values.paymentMethod,
 				clientNotes: values.clientNotes,
-				invoiceItems: items.map((item) => ({
-					description: item.product.name,
+				items: items.map((item) => ({
 					quantity: item.quantity,
-					unitPrice: item.product.sellPrice ?? 0,
-					totalPrice: (item.product.sellPrice ?? 0) * item.quantity,
-					product: { id: item.product.id },
+					productId: item.product.id,
 				})),
 			};
 
+			console.log('Payload enviado:', JSON.stringify(payload, null, 2));
+
 			// @TODO: gestionar todo esto en el backend para que lo haga de una vez
-			const response = await post<Invoice>('/api/invoices', payload);
+			const response = await post<Order>('/api/orders', payload);
 			return response;
 		},
-		onSuccess: (invoice) => {
+		onSuccess: (order) => {
 			clear();
 			reset();
-			queryClient.invalidateQueries({ queryKey: ['invoices'] });
-			onSuccess(invoice);
+			queryClient.invalidateQueries({ queryKey: ['orders'] });
+			onSuccess(order);
 		},
 	});
 
@@ -133,6 +140,18 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 							{...register('client')}
 							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
 						/>
+
+						{errors.client && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.client.message}
+							</span>
+						)}
+
+						{errors.taxRate && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.taxRate.message}
+							</span>
+						)}
 					</div>
 					<div>
 						<label className="block text-sm font-medium text-gray-700 mb-1">
@@ -144,6 +163,12 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 							{...register('clientPhone')}
 							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
 						/>
+
+						{errors.clientPhone && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.clientPhone.message}
+							</span>
+						)}
 					</div>
 					<div>
 						<label className="block text-sm font-medium text-gray-700 mb-1">
@@ -155,6 +180,29 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 							{...register('deliveryAddress')}
 							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
 						/>
+
+						{errors.deliveryAddress && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.deliveryAddress.message}
+							</span>
+						)}
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Precio de envio
+						</label>
+						<input
+							type="text"
+							placeholder="Opcional"
+							{...register('deliveryFee')}
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+						/>
+
+						{errors.deliveryFee && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.deliveryFee.message}
+							</span>
+						)}
 					</div>
 					<div>
 						<label className="block text-sm font-medium text-gray-700 mb-1">
@@ -186,6 +234,12 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 							placeholder="Observaciones opcionales"
 							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
 						/>
+
+						{errors.clientNotes && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.clientNotes.message}
+							</span>
+						)}
 					</div>
 					<section className="bg-gray-50 rounded-lg p-4">
 						<div className="flex justify-between items-center">
@@ -206,7 +260,7 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 						<button
 							type="submit"
 							disabled={mutation.isPending || !items.length}
-							className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+							className={`flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-colors disabled:bg-yellow-300`}
 						>
 							Confirmar y emitir factura
 						</button>
