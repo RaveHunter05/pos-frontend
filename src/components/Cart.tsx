@@ -7,11 +7,14 @@ import { useApi } from '../hooks/useApi';
 import { Toast } from '@/ui/Toast';
 
 export function Cart({ onCheckout }: { onCheckout: () => void }) {
-  const [toast, setToast] = useState<{ message: string; variant?: 'success' | 'error' | 'info' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    variant?: 'success' | 'error' | 'info';
+  } | null>(null);
   const cartState = useCartStore((state) => ({
     items: state.items,
     discount: state.discount,
-    taxRate: state.taxRate
+    taxRate: state.taxRate,
   }));
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeProduct = useCartStore((state) => state.removeProduct);
@@ -26,7 +29,7 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
       const response = await get<ProductInventoryInfo[]>('/api/inventories');
       return response;
     },
-    staleTime: 30_000
+    staleTime: 30_000,
   });
 
   useEffect(() => {
@@ -66,7 +69,7 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
             stock > 0
               ? `Cantidad de ${item.product.name} ajustada al stock disponible (${stock})`
               : `${item.product.name} sin stock disponible, se removio del carrito`,
-          variant: 'info'
+          variant: 'info',
         });
       }
     });
@@ -79,14 +82,21 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
       </header>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {items.map((item) => {
-          const stock = item.quantity;
-          const available = stock !== null ? stock  : null;
+          const stock = item.maxQuantity;
+          const available = stock !== null ? stock : null;
 
           return (
-            <div key={item.product.id} className="border border-gray-200 rounded-lg p-3">
+            <div
+              key={item.product.id}
+              className="border border-gray-200 rounded-lg p-3"
+            >
               <div className="mb-2">
-                <strong className="block text-gray-900">{item.product.name}</strong>
-                <span className="text-xs text-gray-500">SKU: {item.product.sku}</span>
+                <strong className="block text-gray-900">
+                  {item.product.name}
+                </strong>
+                <span className="text-xs text-gray-500">
+                  SKU: {item.product.sku}
+                </span>
               </div>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
@@ -97,26 +107,36 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
                     value={item.quantity}
                     onChange={(event) => {
                       const newQuantity = Number(event.target.value);
-                      const maxQuantity = item.quantity;
+                      const maxQuantity = item.maxQuantity;
 
                       if (Number.isNaN(newQuantity)) return;
 
                       if (maxQuantity === null && newQuantity > 0) {
-                        setToast({ message: 'Inventario cargando, intenta en un momento', variant: 'info' });
+                        setToast({
+                          message: 'Inventario cargando, intenta en un momento',
+                          variant: 'info',
+                        });
                         return;
                       }
 
                       if (maxQuantity !== null && maxQuantity <= 0) {
                         updateQuantity(item.product.id, 0, 0);
-                        setToast({ message: 'Producto sin stock, se removio del carrito', variant: 'error' });
+                        setToast({
+                          message: 'Producto sin stock, se removio del carrito',
+                          variant: 'error',
+                        });
                         return;
                       }
 
                       if (maxQuantity !== null && newQuantity > maxQuantity) {
-                        updateQuantity(item.product.id, maxQuantity, maxQuantity);
+                        updateQuantity(
+                          item.product.id,
+                          maxQuantity,
+                          maxQuantity,
+                        );
                         setToast({
                           message: `Cantidad ajustada al maximo disponible: ${maxQuantity} unidades`,
-                          variant: 'info'
+                          variant: 'info',
                         });
                         return;
                       }
@@ -124,7 +144,7 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
                       const result = updateQuantity(
                         item.product.id,
                         newQuantity,
-                        maxQuantity === null ? undefined : maxQuantity
+                        maxQuantity === null ? undefined : maxQuantity,
                       );
                       if (!result.success && result.message) {
                         setToast({ message: result.message, variant: 'error' });
@@ -139,15 +159,24 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
                   >
                     Quitar
                   </button>
-                  <span className="ml-auto font-semibold text-gray-900">
-                    {formatCurrency((item.product.costPrice ?? 0) * item.quantity)}
-                  </span>
+                  <div className="flex flex-col">
+                    <span>
+                      Precio: {formatCurrency(item.product.sellPrice)}
+                    </span>
+                    <span className="ml-auto font-semibold text-gray-900">
+                      Total:{' '}
+                      {formatCurrency(item.product.sellPrice * item.quantity)}
+                    </span>
+                  </div>
                 </div>
                 {stock !== null && (
                   <div className="text-xs text-gray-500">
-                    Stock total: {stock} | Disponible despues: {available !== null && available >= 0 ? available : 0}
+                    Stock total: {stock} | Disponible despues:{' '}
+                    {stock - item.quantity}
                     {available !== null && available < 0 && (
-                      <span className="text-red-600 font-semibold ml-1">(Excede stock)</span>
+                      <span className="text-red-600 font-semibold ml-1">
+                        (Excede stock)
+                      </span>
                     )}
                   </div>
                 )}
@@ -156,12 +185,16 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
           );
         })}
         {!items.length && (
-          <div className="text-center text-gray-500 py-8">No hay productos en el carrito.</div>
+          <div className="text-center text-gray-500 py-8">
+            No hay productos en el carrito.
+          </div>
         )}
       </div>
       <div className="border-t border-gray-200 p-4 space-y-3">
         <label className="block">
-          <span className="block text-sm font-medium text-gray-700 mb-1">Descuento global (C$)</span>
+          <span className="block text-sm font-medium text-gray-700 mb-1">
+            Descuento global (C$)
+          </span>
           <input
             type="number"
             min={0}
@@ -172,19 +205,27 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
         </label>
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Subtotal</span>
-          <strong className="text-gray-900">{formatCurrency(totals.subtotal)}</strong>
+          <strong className="text-gray-900">
+            {formatCurrency(totals.subtotal)}
+          </strong>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Descuento</span>
-          <strong className="text-gray-900">-{formatCurrency(totals.discount)}</strong>
+          <strong className="text-gray-900">
+            -{formatCurrency(totals.discount)}
+          </strong>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Impuestos</span>
-          <strong className="text-gray-900">{formatCurrency(totals.tax)}</strong>
+          <strong className="text-gray-900">
+            {formatCurrency(totals.tax)}
+          </strong>
         </div>
         <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
           <span className="text-gray-900">Total</span>
-          <strong className="text-indigo-600">{formatCurrency(totals.total)}</strong>
+          <strong className="text-indigo-600">
+            {formatCurrency(totals.total)}
+          </strong>
         </div>
         <button
           type="button"
@@ -195,7 +236,13 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
           Facturar (F7)
         </button>
       </div>
-      {toast && <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

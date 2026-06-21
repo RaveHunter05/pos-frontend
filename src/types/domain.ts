@@ -23,12 +23,14 @@ export type Product = {
 	barCode?: string;
 	measureUnit?: string;
 	costPrice: number;
+	sellPrice: number;
 	isActive: boolean;
 	taxPercentage?: number;
 	productCategories?: Category[];
 };
 
 export type ProductInventoryInfo = {
+	id: number;
 	quantity: number;
 	sku: string;
 	brand: string;
@@ -38,6 +40,7 @@ export type ProductInventoryInfo = {
 	measureUnit: string;
 	isActive: boolean;
 	sellPrice: number;
+	product_id: number;
 };
 
 export type Inventory = {
@@ -74,14 +77,13 @@ export type Order = {
 	status: OrderStatus;
 	subtotal: number;
 	taxAmount: number;
-	shippingAmount: number;
+	deliveryFee: number;
 	totalAmount: number;
-	shippingAddress?: string;
-	billingAddress?: string;
-	notes?: string;
+	deliveryAddress?: string;
+	deliveryNotes?: string;
 	createdAt?: string;
 	updatedAt?: string;
-	orderItems?: OrderItem[];
+	items?: OrderItem[];
 };
 
 export type InvoiceItem = {
@@ -115,7 +117,7 @@ export type Invoice = {
 };
 
 export type CartItem = {
-	product: Product;
+	product: ProductInventoryInfo;
 	quantity: number;
 	discount?: number;
 };

@@ -3,187 +3,278 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { Invoice } from '@/types/domain';
+import type { Order } from '@/types/domain';
 import { useCartStore, calculateCartTotals } from '@/store/cart';
-import { Toast } from '@/ui/Toast';
 import { formatCurrency } from '@/lib/format';
 import { useApi } from '../hooks/useApi';
+import toast from 'react-hot-toast';
 
 const paymentMethods = ['CASH', 'CARD', 'TRANSFER', 'CHECK'] as const;
 
 const paymentSchema = z.object({
-  customerName: z.string().optional(),
-  paymentMethod: z.enum(paymentMethods),
-  notes: z.string().optional()
+	client: z.string().optional(),
+	clientPhone: z.string().optional(),
+	clientNotes: z.string().optional(),
+	deliveryAddress: z.string().optional(),
+	deliveryFee: z.coerce
+		.number()
+		.min(0, 'El costo del delivery debe ser mayor o igual a 0'),
+	paymentMethod: z.enum(paymentMethods),
+	taxRate: z.coerce
+		.number()
+		.min(0, 'El impuesto debe ser mayor o igual a 0')
+		.optional(),
 });
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
 type PaymentModalProps = {
-  open: boolean;
-  onClose: () => void;
-  onSuccess: (invoice: Invoice) => void;
+	open: boolean;
+	onClose: () => void;
+	onSuccess: (order: Order) => void;
 };
 
 export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
-  const queryClient = useQueryClient();
-  const { items, taxRate, discount } = useCartStore((state) => ({
-    items: state.items,
-    taxRate: state.taxRate,
-    discount: state.discount
-  }));
-  const clear = useCartStore((state) => state.clear);
-  const totals = calculateCartTotals({ items, taxRate, discount });
-  const { post } = useApi();
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors }
-  } = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: {
-      paymentMethod: 'CASH'
-    }
-  });
+	const queryClient = useQueryClient();
+	const { items, taxRate, discount } = useCartStore((state) => ({
+		items: state.items,
+		taxRate: state.taxRate,
+		discount: state.discount,
+	}));
+	const clear = useCartStore((state) => state.clear);
+	const totals = calculateCartTotals({ items, taxRate, discount });
+	const { post } = useApi();
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors },
+	} = useForm<PaymentFormValues>({
+		resolver: zodResolver(paymentSchema),
+		defaultValues: {
+			paymentMethod: 'CASH',
+		},
+	});
 
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-    if (open) {
-      window.addEventListener('keydown', handler);
-    }
-    return () => window.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+	useEffect(() => {
+		const handler = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				onClose();
+			}
+		};
+		if (open) {
+			window.addEventListener('keydown', handler);
+		}
+		return () => window.removeEventListener('keydown', handler);
+	}, [open, onClose]);
 
-  const mutation = useMutation({
-    mutationFn: async (values: PaymentFormValues) => {
-      const taxableBase = totals.subtotal > 0 ? totals.subtotal : 1;
-      const payload = {
-        invoiceNumber: `INV-${Date.now()}`,
-        issueDate: new Date().toISOString().slice(0, 10),
-        subtotal: totals.subtotal,
-        taxAmount: totals.tax,
-        totalAmount: totals.total,
-        taxRate: Number(((totals.tax / taxableBase) * 100).toFixed(2)),
-        status: 'PAID',
-        paymentMethod: values.paymentMethod,
-        notes: values.notes,
-        invoiceItems: items.map((item) => ({
-          description: item.product.name,
-          quantity: item.quantity,
-          unitPrice: item.product.costPrice ?? 0,
-          totalPrice: (item.product.costPrice ?? 0) * item.quantity,
-          product: { id: item.product.id }
-        }))
-      };
-      const response = await post<Invoice>('/api/invoices', payload);
-      return response;
-    },
-    onSuccess: (invoice) => {
-      clear();
-      reset();
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      onSuccess(invoice);
-    }
-  });
+	const mutation = useMutation({
+		mutationFn: async (values: PaymentFormValues) => {
+			// @TODO: checar que todo coincida con el DTO del backend
+			//
+			const taxableBase = totals.subtotal > 0 ? totals.subtotal : 1;
 
-  const onSubmit = (values: PaymentFormValues) => {
-    if (!items.length) return;
-    mutation.mutate(values);
-  };
+			const payload = {
+				issueDate: new Date().toISOString().slice(0, 10),
+				subtotal: totals.subtotal,
+				taxAmount: totals.tax,
+				totalAmount: totals.total,
+				taxRate: Number(((totals.tax / taxableBase) * 100).toFixed(2)),
+				status: 'DRAFT',
+				paymentMethod: values.paymentMethod || 'CASH',
+				client: values.client,
+				clientPhone: values.clientPhone,
+				clientNotes: values.clientNotes,
+				deliveryFee: values.deliveryFee,
+				deliveryAddress: values.deliveryAddress,
+				items: items.map((item) => ({
+					quantity: item.quantity,
+					productId: item.product.product_id,
+				})),
+			};
 
-  if (!open) return null;
+			console.log('Payload enviado:', JSON.stringify(payload, null, 2));
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4" role="dialog" aria-modal="true">
-        <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Confirmar pago</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-          >
-            ×
-          </button>
-        </header>
-        <form className="p-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
-            <input
-              type="text"
-              placeholder="Opcional"
-              {...register('customerName')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
-            <select
-              {...register('paymentMethod')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              {paymentMethods.map((method) => (
-                <option key={method} value={method}>
-                  {method}
-                </option>
-              ))}
-            </select>
-            {errors.paymentMethod && (
-              <span className="text-sm text-red-600 mt-1 block">{errors.paymentMethod.message}</span>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-            <textarea
-              rows={3}
-              {...register('notes')}
-              placeholder="Observaciones opcionales"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <section className="bg-gray-50 rounded-lg p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total a cobrar</span>
-              <strong className="text-xl font-bold text-indigo-600">{formatCurrency(totals.total)}</strong>
-            </div>
-          </section>
-          <footer className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending || !items.length}
-              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Confirmar y emitir factura
-            </button>
-          </footer>
-        </form>
-      </div>
-      {mutation.isError && (
-        <Toast
-          message="Error al emitir la factura. Intente nuevamente."
-          variant="error"
-          onClose={() => mutation.reset()}
-        />
-      )}
-      {mutation.isSuccess && (
-        <Toast
-          message="Factura emitida correctamente"
-          variant="success"
-          onClose={() => mutation.reset()}
-        />
-      )}
-    </div>
-  );
+			// @TODO: gestionar todo esto en el backend para que lo haga de una vez
+			const response = toast.promise(post('/api/orders', payload), {
+				loading: 'Actualizando producto...',
+				success: <b>Orden creada exitosamente</b>,
+				error: <b>Error: No se pudo crear orden</b>,
+			});
+			return response;
+		},
+		onSuccess: (order) => {
+			clear();
+			reset();
+			queryClient.invalidateQueries({ queryKey: ['orders'] });
+			onClose();
+		},
+	});
+
+	const onSubmit = (values: PaymentFormValues) => {
+		if (!items.length) return;
+		mutation.mutate(values);
+	};
+
+	if (!open) return null;
+
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+			<div
+				className="bg-white rounded-xl shadow-xl max-w-xl w-full mx-4"
+				role="dialog"
+				aria-modal="true"
+			>
+				<header className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+					<h3 className="text-lg font-semibold text-gray-900">
+						Confirmar pago
+					</h3>
+					<button
+						type="button"
+						onClick={onClose}
+						className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+					>
+						×
+					</button>
+				</header>
+				<form className="p-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Cliente
+						</label>
+						<input
+							type="text"
+							placeholder="Opcional"
+							{...register('client')}
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+						/>
+
+						{errors.client && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.client.message}
+							</span>
+						)}
+
+						{errors.taxRate && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.taxRate.message}
+							</span>
+						)}
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Telefono Cliente
+						</label>
+						<input
+							type="text"
+							placeholder="Opcional"
+							{...register('clientPhone')}
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+						/>
+
+						{errors.clientPhone && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.clientPhone.message}
+							</span>
+						)}
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Direccion de envio
+						</label>
+						<input
+							type="text"
+							placeholder="Opcional"
+							{...register('deliveryAddress')}
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+						/>
+
+						{errors.deliveryAddress && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.deliveryAddress.message}
+							</span>
+						)}
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Precio de envio
+						</label>
+						<input
+							type="text"
+							placeholder="Opcional"
+							{...register('deliveryFee')}
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+						/>
+
+						{errors.deliveryFee && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.deliveryFee.message}
+							</span>
+						)}
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Método de pago
+						</label>
+						<select
+							{...register('paymentMethod')}
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+						>
+							{paymentMethods.map((method) => (
+								<option key={method} value={method}>
+									{method}
+								</option>
+							))}
+						</select>
+						{errors.paymentMethod && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.paymentMethod.message}
+							</span>
+						)}
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Notas
+						</label>
+						<textarea
+							rows={3}
+							{...register('clientNotes')}
+							placeholder="Observaciones opcionales"
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+						/>
+
+						{errors.clientNotes && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.clientNotes.message}
+							</span>
+						)}
+					</div>
+					<section className="bg-gray-50 rounded-lg p-4">
+						<div className="flex justify-between items-center">
+							<span className="text-gray-600">Total a cobrar</span>
+							<strong className="text-xl font-bold text-indigo-600">
+								{formatCurrency(totals.total)}
+							</strong>
+						</div>
+					</section>
+					<footer className="flex gap-3 pt-4">
+						<button
+							type="button"
+							onClick={onClose}
+							className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+						>
+							Cancelar
+						</button>
+						<button
+							type="submit"
+							disabled={mutation.isPending || !items.length}
+							className={`flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-colors disabled:bg-yellow-300`}
+						>
+							Confirmar y emitir factura
+						</button>
+					</footer>
+				</form>
+			</div>
+		</div>
+	);
 }

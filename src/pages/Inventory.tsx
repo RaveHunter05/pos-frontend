@@ -5,6 +5,7 @@ import { DataTable } from '@/components/DataTable';
 import { buildFormBody } from '@/lib/forms';
 import { useApi } from '../hooks/useApi';
 import { GetInventories } from '@/types/dtos/Inventory';
+import toast from 'react-hot-toast';
 
 export default function Inventory() {
 	const [search, setSearch] = useState('');
@@ -22,8 +23,14 @@ export default function Inventory() {
 
 	const updateMutation = useMutation({
 		mutationFn: async ({ id, quantity }: { id: string; quantity: number }) => {
-			const body = buildFormBody({ quantity });
-			await put(`/api/inventories/${id}`, body);
+			const body = { quantity };
+			console.log({ body });
+
+			toast.promise(put(`/api/inventories/${id}`, body), {
+				loading: 'Actualizando producto...',
+				success: <b>Inventario actualizado exitosamente</b>,
+				error: <b>Error: No se pudo actualizar inventario</b>,
+			});
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['inventories'] });
@@ -64,7 +71,7 @@ export default function Inventory() {
 						render: (item) => item.name,
 					},
 					{ key: 'sku', header: 'SKU', render: (item) => item.sku },
-					{ key: 'quantity', header: 'Cantidad' },
+					{ key: 'quantity', header: 'Cantidad Disponible' },
 					{ key: 'minStock', header: 'Mínimo' },
 					{ key: 'maxStock', header: 'Máximo' },
 					{
@@ -99,7 +106,7 @@ export default function Inventory() {
 										})
 									}
 								>
-									Aplicar
+									Agregar
 								</button>
 							</div>
 						),
