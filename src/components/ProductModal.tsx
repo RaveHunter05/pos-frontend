@@ -10,8 +10,8 @@ import toast from 'react-hot-toast';
 
 const productSchema = z.object({
 	sku: z.string().min(1, 'El SKU es obligatorio'),
-	name: z.string().min(1, 'El nombre es obligatorio'),
 	brand: z.string().optional(),
+	name: z.string().min(1, 'El nombre es obligatorio'),
 	description: z.string().optional(),
 	barCode: z.string().optional(),
 	measureUnit: z.string().optional(),
@@ -101,9 +101,7 @@ export function ProductModal({
 
 	const upsertMutation = useMutation({
 		mutationFn: async (values: ProductFormValues) => {
-			const body = buildFormBody(values);
-
-			console.log({ body });
+			const body = values;
 
 			if (editing) {
 				const response = toast.promise(

@@ -23,7 +23,7 @@ export default function Inventory() {
 
 	const updateMutation = useMutation({
 		mutationFn: async ({ id, quantity }: { id: string; quantity: number }) => {
-			const body = buildFormBody({ quantity });
+			const body = { quantity };
 			console.log({ body });
 
 			toast.promise(put(`/api/inventories/${id}`, body), {
@@ -71,7 +71,7 @@ export default function Inventory() {
 						render: (item) => item.name,
 					},
 					{ key: 'sku', header: 'SKU', render: (item) => item.sku },
-					{ key: 'quantity', header: 'Cantidad' },
+					{ key: 'quantity', header: 'Cantidad Disponible' },
 					{ key: 'minStock', header: 'Mínimo' },
 					{ key: 'maxStock', header: 'Máximo' },
 					{
@@ -106,7 +106,7 @@ export default function Inventory() {
 										})
 									}
 								>
-									Aplicar
+									Agregar
 								</button>
 							</div>
 						),

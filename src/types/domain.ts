@@ -77,11 +77,10 @@ export type Order = {
 	status: OrderStatus;
 	subtotal: number;
 	taxAmount: number;
-	shippingAmount: number;
+	deliveryFee: number;
 	totalAmount: number;
-	shippingAddress?: string;
-	billingAddress?: string;
-	notes?: string;
+	deliveryAddress?: string;
+	deliveryNotes?: string;
 	createdAt?: string;
 	updatedAt?: string;
 	items?: OrderItem[];

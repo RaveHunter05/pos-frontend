@@ -5,9 +5,9 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Order } from '@/types/domain';
 import { useCartStore, calculateCartTotals } from '@/store/cart';
-import { Toast } from '@/ui/Toast';
 import { formatCurrency } from '@/lib/format';
 import { useApi } from '../hooks/useApi';
+import toast from 'react-hot-toast';
 
 const paymentMethods = ['CASH', 'CARD', 'TRANSFER', 'CHECK'] as const;
 
@@ -81,25 +81,33 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 				totalAmount: totals.total,
 				taxRate: Number(((totals.tax / taxableBase) * 100).toFixed(2)),
 				status: 'DRAFT',
-				paymentMethod: values.paymentMethod,
+				paymentMethod: values.paymentMethod || 'CASH',
+				client: values.client,
+				clientPhone: values.clientPhone,
 				clientNotes: values.clientNotes,
+				deliveryFee: values.deliveryFee,
+				deliveryAddress: values.deliveryAddress,
 				items: items.map((item) => ({
 					quantity: item.quantity,
-					productId: item.product.id,
+					productId: item.product.product_id,
 				})),
 			};
 
 			console.log('Payload enviado:', JSON.stringify(payload, null, 2));
 
 			// @TODO: gestionar todo esto en el backend para que lo haga de una vez
-			const response = await post<Order>('/api/orders', payload);
+			const response = toast.promise(post('/api/orders', payload), {
+				loading: 'Actualizando producto...',
+				success: <b>Orden creada exitosamente</b>,
+				error: <b>Error: No se pudo crear orden</b>,
+			});
 			return response;
 		},
 		onSuccess: (order) => {
 			clear();
 			reset();
 			queryClient.invalidateQueries({ queryKey: ['orders'] });
-			onSuccess(order);
+			onClose();
 		},
 	});
 
@@ -267,20 +275,6 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 					</footer>
 				</form>
 			</div>
-			{mutation.isError && (
-				<Toast
-					message="Error al emitir la factura. Intente nuevamente."
-					variant="error"
-					onClose={() => mutation.reset()}
-				/>
-			)}
-			{mutation.isSuccess && (
-				<Toast
-					message="Factura emitida correctamente"
-					variant="success"
-					onClose={() => mutation.reset()}
-				/>
-			)}
 		</div>
 	);
 }

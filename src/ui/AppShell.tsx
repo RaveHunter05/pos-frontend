@@ -8,7 +8,7 @@ const navigation = [
 	{ to: '/user/products', label: 'Productos' },
 	{ to: '/user/categories', label: 'Categorías' },
 	{ to: '/user/inventory', label: 'Inventario' },
-	{ to: '/user/orders', label: 'Pedidos' },
+	{ to: '/user/orders', label: 'Ordenes' },
 	{ to: '/user/customers', label: 'Clientes' },
 	{ to: '/user/invoices', label: 'Facturas' },
 	{ to: '/user/reports', label: 'Reportes' },

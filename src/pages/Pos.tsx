@@ -65,7 +65,6 @@ export default function Pos() {
         open={paymentOpen}
         onClose={() => setPaymentOpen(false)}
         onSuccess={(invoice) => {
-          setLastInvoice(invoice);
           setPaymentOpen(false);
           clearCart();
         }}
