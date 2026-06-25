@@ -93,15 +93,24 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 				})),
 			};
 
-			console.log('Payload enviado:', JSON.stringify(payload, null, 2));
+			//console.log('Payload enviado:', JSON.stringify(payload, null, 2));
 
-			// @TODO: gestionar todo esto en el backend para que lo haga de una vez
-			const response = toast.promise(post('/api/orders', payload), {
-				loading: 'Actualizando producto...',
-				success: <b>Orden creada exitosamente</b>,
-				error: <b>Error: No se pudo crear orden</b>,
+			// @TODO usar toast para el mensaje y gestionar mejor lo de el PDF
+			const pdfBlob = await post('/api/orders/generate-invoice', payload, {
+				responseType: 'blob',
 			});
-			return response;
+
+			// Descargar el PDF
+			const url = window.URL.createObjectURL(pdfBlob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = `Factura_${new Date().toISOString().slice(0, 10)}.pdf`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			window.URL.revokeObjectURL(url);
+
+			return pdfBlob;
 		},
 		onSuccess: (order) => {
 			clear();
