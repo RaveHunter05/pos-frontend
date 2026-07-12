@@ -46,6 +46,7 @@ export default function Dashboard() {
 		const activeOrders = metricsQuery.data.orders.length;
 
 		const totalInvoices = metricsQuery.data.invoices.length;
+
 		const lowStock = metricsQuery.data.inventory.filter(
 			(item) => item.quantity <= item.minStock,
 		).length;
