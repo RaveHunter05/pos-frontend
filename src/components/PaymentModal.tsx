@@ -70,8 +70,7 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 
 	const mutation = useMutation({
 		mutationFn: async (values: PaymentFormValues) => {
-			// @TODO: checar que todo coincida con el DTO del backend
-			//
+			//@TODO: Agregar descuento a calculo total
 			const taxableBase = totals.subtotal > 0 ? totals.subtotal : 1;
 
 			const payload = {
@@ -130,7 +129,7 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 			<div
-				className="bg-white rounded-xl shadow-xl max-w-xl w-full mx-4"
+				className="bg-white rounded-xl shadow-xl max-w-xl w-full mx-4 h-9/10 overflow-scroll"
 				role="dialog"
 				aria-modal="true"
 			>
