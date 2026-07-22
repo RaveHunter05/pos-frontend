@@ -105,8 +105,8 @@ export default function Products() {
 							{ key: 'barCode', header: 'Código de barras' },
 							{
 								key: 'costPrice',
-								header: 'Costo',
-								render: (product) => formatCurrency(product.costPrice ?? 0),
+								header: 'Venta',
+								render: (product) => formatCurrency(product.sellPrice ?? 0),
 							},
 							{
 								key: 'taxPercentage',
