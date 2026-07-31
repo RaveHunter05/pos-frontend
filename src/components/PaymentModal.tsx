@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -7,7 +7,6 @@ import type { Order } from '@/types/domain';
 import { useCartStore, calculateCartTotals } from '@/store/cart';
 import { formatCurrency } from '@/lib/format';
 import { useApi } from '../hooks/useApi';
-import toast from 'react-hot-toast';
 
 const paymentMethods = ['CASH', 'CARD', 'TRANSFER', 'CHECK'] as const;
 
@@ -19,6 +18,9 @@ const paymentSchema = z.object({
 	deliveryFee: z.coerce
 		.number()
 		.min(0, 'El costo del delivery debe ser mayor o igual a 0'),
+	discount: z.coerce
+		.number()
+		.min(0, 'El costo del descuento debe ser mayor o igual a 0'),
 	paymentMethod: z.enum(paymentMethods),
 	taxRate: z.coerce
 		.number()
@@ -44,7 +46,11 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 	const clear = useCartStore((state) => state.clear);
 	const totals = calculateCartTotals({ items, taxRate, discount });
 	const { post } = useApi();
+
+	const [totalCharge, setTotalCharge] = useState<number>(0);
+
 	const {
+		getValues,
 		register,
 		handleSubmit,
 		reset,
@@ -53,8 +59,23 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 		resolver: zodResolver(paymentSchema),
 		defaultValues: {
 			paymentMethod: 'CASH',
+			discount: 0,
+			deliveryFee: 0
 		},
 	});
+
+	useEffect(() => {
+		const deliveryFee = getValues('deliveryFee');
+
+		const orderDiscount = getValues('discount');
+
+		let totalCharges =
+			parseFloat(totals.total) +
+			parseFloat(deliveryFee) -
+			parseFloat(orderDiscount);
+
+		setTotalCharge(totalCharges);
+	}, [totals, getValues]);
 
 	useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
@@ -70,8 +91,9 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 
 	const mutation = useMutation({
 		mutationFn: async (values: PaymentFormValues) => {
-			//@TODO: Agregar descuento a calculo total
 			const taxableBase = totals.subtotal > 0 ? totals.subtotal : 1;
+
+			//@TODO: subtotal, taxAmount, totalAmount, taxRate should be calculed in the backend
 
 			const payload = {
 				issueDate: new Date().toISOString().slice(0, 10),
@@ -85,6 +107,7 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 				clientPhone: values.clientPhone,
 				clientNotes: values.clientNotes,
 				deliveryFee: values.deliveryFee,
+				discountAmount: values.discount,
 				deliveryAddress: values.deliveryAddress,
 				items: items.map((item) => ({
 					quantity: item.quantity,
@@ -222,6 +245,22 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 					</div>
 					<div>
 						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Descuento
+						</label>
+						<input
+							type="text"
+							placeholder="Opcional"
+							{...register('discount')}
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+						/>
+						{errors.discount && (
+							<span className="text-sm text-red-600 mt-1 block">
+								{errors.discount.message}
+							</span>
+						)}
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
 							Método de pago
 						</label>
 						<select
@@ -261,7 +300,7 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 						<div className="flex justify-between items-center">
 							<span className="text-gray-600">Total a cobrar</span>
 							<strong className="text-xl font-bold text-indigo-600">
-								{formatCurrency(totals.total)}
+								{formatCurrency(totalCharge)}
 							</strong>
 						</div>
 					</section>

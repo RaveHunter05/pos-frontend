@@ -26,9 +26,11 @@ export type CartActions = {
 	setTaxRate: (taxRate: number) => void;
 };
 
+//@TODO: Tax Rate configurarlo con los settings de la base de datos
+
 const initialState: CartState = {
 	items: [],
-	taxRate: 0.15,
+	taxRate: 0,
 	discount: 0,
 };
 
