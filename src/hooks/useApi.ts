@@ -57,7 +57,7 @@ export const useApi = () => {
 
 	return {
 		get: <T>(url: string, config?: AxiosRequestConfig) =>
-			authRequest<T>('get', url, undefined, config),
+			authRequest<T>('get', url, null, config),
 		post: <T>(url: string, data: any, config?: AxiosRequestConfig) =>
 			authRequest<T>('post', url, data, config),
 		put: <T>(url: string, data: any, config?: AxiosRequestConfig) =>
