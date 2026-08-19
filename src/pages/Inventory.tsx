@@ -2,16 +2,32 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Inventory } from '@/types/domain';
 import { DataTable } from '@/components/DataTable';
-import { buildFormBody } from '@/lib/forms';
 import { useApi } from '../hooks/useApi';
 import { GetInventories } from '@/types/dtos/Inventory';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
 
 export default function Inventory() {
 	const [search, setSearch] = useState('');
 	const [adjustments, setAdjustments] = useState<Record<number, number>>({});
 	const queryClient = useQueryClient();
 	const { get, put } = useApi();
+
+	const generateInventoryReport = async () => {
+		const pdfBlob = await get('/api/inventories/report/pdf', {
+			responseType: 'blob',
+		});
+
+		// Descargar el PDF
+		const url = window.URL.createObjectURL(pdfBlob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `Inventory_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		window.URL.revokeObjectURL(url);
+	};
 
 	const inventoryQuery = useQuery({
 		queryKey: ['inventories'],
@@ -52,13 +68,21 @@ export default function Inventory() {
 		<div className="flex flex-col gap-6">
 			<header className="flex items-center justify-between">
 				<h2 className="text-2xl font-semibold text-gray-900">Inventario</h2>
-				<input
-					type="search"
-					placeholder="Buscar producto"
-					value={search}
-					onChange={(event) => setSearch(event.target.value)}
-					className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-				/>
+				<div>
+					<Button
+						className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mr-3 cursor-pointer"
+						onClick={generateInventoryReport}
+					>
+						Generar Informe de Inventario
+					</Button>
+					<input
+						type="search"
+						placeholder="Buscar producto"
+						value={search}
+						onChange={(event) => setSearch(event.target.value)}
+						className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+					/>
+				</div>
 			</header>
 			<DataTable
 				data={filteredInventory}

@@ -6,6 +6,15 @@ export type Category = {
 	updatedAt?: string;
 };
 
+export type StoreData = {
+	name: string;
+	RUC?: string;
+	taxRate?: number;
+	phone?: string;
+	email?: string;
+	currency?: string;
+};
+
 export type Customer = {
 	id: number;
 	name: string;

@@ -83,9 +83,7 @@ export default function Dashboard() {
 					</strong>
 				</article>
 				<article className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-					<span className="text-sm text-gray-600 block mb-2">
-						Productos con bajo stock
-					</span>
+					<span className="text-sm text-gray-600 block mb-2">Utilidades</span>
 					<strong className="text-2xl font-bold text-gray-900">
 						{metricsQuery.isLoading ? '...' : metrics.lowStock}
 					</strong>

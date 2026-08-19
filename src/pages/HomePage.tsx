@@ -46,8 +46,9 @@ const HomePage = () => {
 			{/* Hero Section */}
 			<main className="container mx-auto px-6 py-20">
 				<div className="max-w-4xl mx-auto text-center">
+					<img src="/pos_main_image.jpg" height={100} width={100} className='mx-auto mb-5'/>
 					<h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-						Sistema de Punto de Venta
+						Sistema de Punto de Venta de Mercaditonic.com
 					</h1>
 
 					<p className="text-xl text-gray-600 mb-8 leading-relaxed">

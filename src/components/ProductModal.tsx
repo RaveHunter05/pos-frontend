@@ -103,6 +103,9 @@ export function ProductModal({
 		mutationFn: async (values: ProductFormValues) => {
 			const body = values;
 
+			console.log('Updating Product...');
+			console.log({ body });
+
 			if (editing) {
 				const response = toast.promise(
 					put(`/api/products/${editing.id}`, body),

@@ -66,7 +66,6 @@ export function TopProductsChart({
 				const response = await get<TopProductApiResponse>(
 					`/api/reports/top-products`,
 				);
-				console.log({ responseTopProducts: response });
 				if (Array.isArray(response)) {
 					return response.map((item) => ({
 						name: item.name,
