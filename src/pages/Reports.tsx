@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { SalesByDayChart } from '@/components/Charts/SalesByDay';
@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
 import { FileTextIcon } from 'lucide-react';
+import toLocalDateTime from '@/helpers/toLocalDateTime';
+import { Input } from '@/components/ui/input';
 
 type DashboardMetricsResponse = {
 	salesToday: number;
@@ -59,6 +61,15 @@ export default function Reports() {
 
 	const [selectedRange, setSelectedRange] = useState();
 
+	const [reportParams, setReportParams] = useState<{
+		reportType: string;
+		fromDate?: string;
+		toDate?: string;
+	} | null>(null);
+
+	const [startDate, setStartDate] = useState('');
+	const [endDate, setEndDate] = useState('');
+
 	const monthRange = useMemo(() => {
 		const to = dayjs();
 		return {
@@ -68,16 +79,22 @@ export default function Reports() {
 	}, []);
 
 	const dashboardQuery = useQuery({
-		queryKey: ['reports', 'dashboard-metrics', selectedRange?.value],
+		queryKey: ['reports', 'dashboard-metrics', reportParams],
 		queryFn: async () => {
 			try {
 				console.log('DASHBOARD: executing dashboard');
-				console.log({ selectedRangeValue: selectedRange?.value });
-				const response = await get('/api/reports/dashboard', {
-					params: {
-						reportType: selectedRange?.value || "DAILY",
-					},
-				});
+				console.log({ reportParams });
+
+				const params: any = {
+					reportType: reportParams?.reportType || 'DAILY',
+				};
+
+				// Solo enviamos las fechas si es CUSTOM
+				if (reportParams?.reportType === 'CUSTOM') {
+					params.fromDate = reportParams.fromDate;
+					params.toDate = reportParams.toDate;
+				}
+				const response = await get('/api/reports/dashboard', { params });
 				console.log({ response });
 				return response as DashboardMetricsResponse;
 			} catch {
@@ -85,6 +102,27 @@ export default function Reports() {
 			}
 		},
 	});
+
+	const handleGenerateReport = () => {
+		setReportParams({
+			reportType: selectedRange?.value || 'DAILY',
+		});
+	};
+
+	const handleGenerateCustomReport = () => {
+		if (!startDate || !endDate) {
+			alert('Debes seleccionar fecha de inicio y fecha de fin');
+			return;
+		}
+
+		console.log('CUSTOM REPORT');
+
+		setReportParams({
+			reportType: 'CUSTOM',
+			fromDate: toLocalDateTime(startDate),
+			toDate: toLocalDateTime(endDate),
+		});
+	};
 
 	const productsQuery = useQuery({
 		queryKey: ['products', 'count'],
@@ -148,6 +186,7 @@ export default function Reports() {
 		return {
 			salesToday: dashboardQuery.data?.totalSells ?? fallbackSalesToday,
 			ticketsToday: dashboardQuery.data?.ticketsToday ?? fallbackTicketsToday,
+			utility: dashboardQuery.data?.utility,
 			totalProducts: dashboardQuery.data?.quantity,
 			lowStock: lowStockCount,
 			averageTicket: dashboardQuery.data?.averageTicket,
@@ -195,12 +234,6 @@ export default function Reports() {
 			});
 	}, [invoicesQuery.data]);
 
-	const rangeLabel = useMemo(
-		() =>
-			`${dayjs(salesRange.from).format('DD/MM/YYYY')} - ${dayjs(salesRange.to).format('DD/MM/YYYY')}`,
-		[salesRange.from, salesRange.to],
-	);
-
 	const salesKpiLoading =
 		!dashboardQuery.data &&
 		dashboardQuery.isFetching &&
@@ -236,12 +269,41 @@ export default function Reports() {
 							</ComboboxContent>
 						</Combobox>
 					</div>
-					<p className="text-gray-600">Últimos 7 días: {rangeLabel}</p>
+					{selectedRange?.value === 'CUSTOM' ? (
+						<div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+							<div>
+								<label>Fecha Inicio</label>
+								<Input
+									type="date"
+									value={startDate}
+									onChange={(e) => setStartDate(e.target.value)}
+								/>
+							</div>
 
-					<Button className="bg-red-500 hover:bg-red-400 cursor-pointer">
-						<FileTextIcon />
-						Generar Reporte{' '}
-					</Button>
+							<div>
+								<label>Fecha Fin</label>
+								<Input
+									type="date"
+									value={endDate}
+									onChange={(e) => setEndDate(e.target.value)}
+								/>
+							</div>
+
+							<Button
+								className="bg-red-500 hover:bg-red-400 cursor-pointer"
+								onClick={handleGenerateCustomReport}
+							>
+								Generar Reporte
+							</Button>
+						</div>
+					) : (
+						<Button
+							className="bg-red-500 hover:bg-red-400 cursor-pointer"
+							onClick={handleGenerateReport}
+						>
+							Generar Reporte
+						</Button>
+					)}
 				</div>
 			</header>
 
@@ -266,23 +328,21 @@ export default function Reports() {
 
 				<article className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
 					<span className="text-sm text-gray-600 block mb-2">
-						Total productos (SKUs)
+						Total productos vendidos
 					</span>
 					<strong className="text-2xl font-bold text-gray-900">
 						{productsQuery.isFetching && !productsQuery.data
 							? '...'
-							: kpis.totalProducts}
+							: kpis.totalProducts || 0}
 					</strong>
 				</article>
 
 				<article className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-					<span className="text-sm text-gray-600 block mb-2">
-						Alerta de stock (stock &lt; 10)
-					</span>
+					<span className="text-sm text-gray-600 block mb-2">Utilidad</span>
 					<strong className="text-2xl font-bold text-gray-900">
 						{inventoryQuery.isFetching && !inventoryQuery.data
 							? '...'
-							: kpis.lowStock}
+							: kpis.utility}
 					</strong>
 				</article>
 			</section>
