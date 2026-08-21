@@ -21,8 +21,6 @@ import {
 	useComboboxAnchor,
 } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
-import { FileTextIcon } from 'lucide-react';
-import toLocalDateTime from '@/helpers/toLocalDateTime';
 import { Input } from '@/components/ui/input';
 
 type DashboardMetricsResponse = {
@@ -119,8 +117,8 @@ export default function Reports() {
 
 		setReportParams({
 			reportType: 'CUSTOM',
-			fromDate: toLocalDateTime(startDate),
-			toDate: toLocalDateTime(endDate),
+			fromDate: startDate,
+			toDate: endDate,
 		});
 	};
 
