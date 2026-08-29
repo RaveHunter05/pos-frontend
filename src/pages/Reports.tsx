@@ -163,8 +163,7 @@ export default function Reports() {
 		const today = dayjs();
 		const todaysInvoices = invoices.filter((invoice) => {
 			const rawDate = (invoice.createdAt ?? invoice.issueDate) as
-				| string
-				| undefined;
+				string | undefined;
 			if (!rawDate) return false;
 			return dayjs(rawDate).isSame(today, 'day');
 		});
@@ -213,8 +212,7 @@ export default function Reports() {
 			.map((invoice) => {
 				const anyInvoice = invoice as any;
 				const rawDate = (invoice.createdAt ?? invoice.issueDate) as
-					| string
-					| undefined;
+					string | undefined;
 				const cashier =
 					anyInvoice.cashierName ??
 					anyInvoice.cashier?.name ??

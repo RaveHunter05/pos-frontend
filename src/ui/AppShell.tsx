@@ -3,7 +3,6 @@ import { SignedIn, UserButton, useUser } from '@clerk/clerk-react';
 
 const navigation = [
 	{ to: '/user/dashboard', label: 'Dashboard' },
-	{ to: '/user/assign-store', label: 'Assign Store' },
 	{ to: '/user/pos', label: 'POS' },
 	{ to: '/user/products', label: 'Productos' },
 	{ to: '/user/categories', label: 'Categorías' },

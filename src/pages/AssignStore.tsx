@@ -44,6 +44,8 @@ const AssignStore = () => {
 
 	// @TODO: fix this
 	const handleAssignStoreRole = () => {
+		//not currently working
+		return null;
 		return assignRole({
 			clerkId: selectedUser.clerkId,
 			storeId: selectedStore?.id.toString() || '',
@@ -175,6 +177,7 @@ const AssignStore = () => {
 			>
 				Asignar Rol
 			</Button>
+			<h2>This is not currently working</h2>
 		</div>
 	);
 };
