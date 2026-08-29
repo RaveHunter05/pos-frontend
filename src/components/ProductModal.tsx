@@ -13,7 +13,7 @@ const productSchema = z.object({
 	brand: z.string().optional(),
 	name: z.string().min(1, 'El nombre es obligatorio'),
 	description: z.string().optional(),
-	barCode: z.string().optional(),
+	barCode: z.string().min(1, 'El codigo de barra es obligatorio'),
 	measureUnit: z.string().optional(),
 	costPrice: z.coerce.number().min(0, 'El precio debe ser mayor o igual a 0'),
 	sellPrice: z.coerce.number().min(0, 'El precio debe ser mayor o igual a 0'),
@@ -233,7 +233,7 @@ export function ProductModal({
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-1">
-								Código de barras
+								Código de barras *
 							</label>
 							<input
 								type="text"
