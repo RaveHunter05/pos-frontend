@@ -150,6 +150,13 @@ export function Cart({ onCheckout }: { onCheckout: () => void }) {
 												setToast({ message: result.message, variant: 'error' });
 											}
 										}}
+
+										onKeyDown={(e) => {
+											if (e.key == 'Backspace' && e.target.value - 10 < 0) {
+												e.preventDefault();
+												return;
+											}
+										}}
 										className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
 									/>
 									<button
