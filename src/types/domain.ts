@@ -83,10 +83,12 @@ export type OrderStatus =
 export type Order = {
 	id: number;
 	orderNumber: string;
+	client: string;
 	status: OrderStatus;
 	subtotal: number;
 	taxAmount: number;
 	deliveryFee: number;
+	discount: number;
 	totalAmount: number;
 	deliveryAddress?: string;
 	deliveryNotes?: string;

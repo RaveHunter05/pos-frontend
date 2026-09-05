@@ -153,6 +153,9 @@ export default function Orders() {
 						<div className="mt-4 pt-4 border-t border-gray-200">
 							<div className="flex flex-col gap-2 mb-4">
 								<span className="text-sm">
+									<strong>Cliente:</strong> {selectedOrder.client}
+								</span>
+								<span className="text-sm">
 									<strong>Estado:</strong> {selectedOrder.status}
 								</span>
 								<span className="text-sm">
@@ -165,7 +168,11 @@ export default function Orders() {
 								</span>
 								<span className="text-sm">
 									<strong>Envío:</strong>{' '}
-									{formatCurrency(selectedOrder.shippingAmount)}
+									{formatCurrency(selectedOrder.deliveryFee)}
+								</span>
+								<span className="text-sm">
+									<strong>Descounto:</strong>{' '}
+									{formatCurrency(selectedOrder.discount)}
 								</span>
 								<span className="text-sm">
 									<strong>Total:</strong>{' '}
