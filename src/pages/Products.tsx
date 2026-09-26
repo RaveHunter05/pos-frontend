@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Product, Category } from '@/types/domain';
+import type { Product, Category, PageResponse } from '@/types/domain';
 import { DataTable } from '@/components/DataTable';
 import { formatCurrency } from '@/lib/format';
 import { useApi } from '../hooks/useApi';
@@ -12,14 +12,24 @@ export default function Products() {
 	const [editing, setEditing] = useState<Product | null>(null);
 	const [modalOpen, setModalOpen] = useState(false);
 
+	const [currentPage, setCurrentPage] = useState(0);
+	const [size, setSize] = useState(10);
+	const [totalPages, setTotalPages] = useState(0);
+
 	const { get, apiDelete } = useApi();
 	const queryClient = useQueryClient();
 
 	const productsQuery = useQuery({
-		queryKey: ['products'],
+		queryKey: ['products', currentPage],
 		queryFn: async () => {
-			const response = await get<Product[]>('/api/products');
-			return response;
+			const response = await get<PageResponse<Product>>('/api/products', {
+				params: {
+					page: currentPage,
+					size: size,
+				},
+			});
+			setTotalPages(response.totalPages);
+			return response.content;
 		},
 	});
 
@@ -163,6 +173,32 @@ export default function Products() {
 							},
 						]}
 					/>
+				</section>
+				<section className="mt-6 flex items-center justify-end gap-3">
+					<button
+						disabled={currentPage === 0}
+						onClick={() => setCurrentPage(currentPage - 1)}
+						className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 cursor-pointer"
+					>
+						Anterior
+					</button>
+					<div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+						<span className="text-slate-500">Página</span>
+						<span className="font-semibold text-slate-900">
+							{currentPage + 1}
+						</span>
+						<span className="text-slate-500">de</span>
+						<span className="font-semibold text-slate-900">
+							{totalPages || 1}
+						</span>
+					</div>
+					<button
+						disabled={currentPage >= totalPages - 1}
+						onClick={() => setCurrentPage(currentPage + 1)}
+						className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 cursor-pointer"
+					>
+						Siguiente
+					</button>
 				</section>
 			</div>
 			<ProductModal
