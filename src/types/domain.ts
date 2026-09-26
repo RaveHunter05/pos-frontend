@@ -38,6 +38,14 @@ export type Product = {
 	productCategories?: Category[];
 };
 
+export type PageResponse<T> = {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  number: number;
+  size: number;
+};
+
 export type ProductInventoryInfo = {
 	id: number;
 	quantity: number;
@@ -83,10 +91,12 @@ export type OrderStatus =
 export type Order = {
 	id: number;
 	orderNumber: string;
+	client: string;
 	status: OrderStatus;
 	subtotal: number;
 	taxAmount: number;
 	deliveryFee: number;
+	discount: number;
 	totalAmount: number;
 	deliveryAddress?: string;
 	deliveryNotes?: string;
