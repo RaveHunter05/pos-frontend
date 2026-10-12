@@ -33,6 +33,23 @@ export default function Products() {
 		},
 	});
 
+	const productsSearch = useQuery({
+		queryKey: ['products', search],
+		queryFn: async () => {
+			const response = await get<PageResponse<Product>>(
+				'/api/products/search',
+				{
+					params: {
+						searchParam: search.trim(),
+					},
+				},
+			);
+			setTotalPages(response.totalPages);
+			console.log({ response });
+			return response.content;
+		},
+	});
+
 	const deleteMutation = useMutation({
 		mutationFn: async (id: number) => {
 			toast.promise(apiDelete(`/api/products/${id}`), {
@@ -73,13 +90,8 @@ export default function Products() {
 	const filteredProducts = useMemo(() => {
 		if (!productsQuery.data) return [];
 		if (!search.trim()) return productsQuery.data;
-		const normalized = search.trim().toLowerCase();
-		return productsQuery.data.filter((product) =>
-			[product.name, product.brand, product.sku, product.barCode]
-				.filter(Boolean)
-				.some((value) => value!.toLowerCase().includes(normalized)),
-		);
-	}, [productsQuery.data, search]);
+		return productsSearch.data ?? [];
+	}, [productsQuery.data, productsSearch.data, search]);
 
 	return (
 		<div className="flex flex-col gap-6">

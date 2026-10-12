@@ -6,7 +6,12 @@ import { RevenueByCategoryChart } from '@/components/Charts/RevenueByCategory';
 import { SalesByWeekdayChart } from '@/components/Charts/SalesByWeekday';
 import { SalesByPaymentMethodChart } from '@/components/Charts/SalesByPaymentMethod';
 import { InvoiceStatusChart } from '@/components/Charts/InvoiceStatus';
-import type { Inventory, Invoice, Order } from '@/types/domain';
+import {
+	PageResponse,
+	type Inventory,
+	type Invoice,
+	type Order,
+} from '@/types/domain';
 import { formatCurrency } from '@/lib/format';
 import { useApi } from '../hooks/useApi';
 
@@ -20,12 +25,12 @@ export default function Dashboard() {
 				await Promise.all([
 					get<Order[]>('/api/orders'),
 					get<Invoice[]>('/api/invoices'),
-					get<Inventory[]>('/api/inventories'),
+					get<PageResponse<Inventory>>('/api/inventories'),
 				]);
 			return {
 				orders: ordersResponse,
 				invoices: invoicesResponse,
-				inventory: inventoryResponse,
+				inventory: inventoryResponse.content,
 			};
 		},
 	});

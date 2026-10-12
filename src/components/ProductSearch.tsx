@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { ProductInventoryInfo } from '@/types/domain';
+import type { PageResponse, ProductInventoryInfo } from '@/types/domain';
 import { useCartStore } from '@/store/cart';
 import { Toast } from '@/ui/Toast';
 import { formatCurrency } from '@/lib/format';
@@ -30,25 +30,28 @@ export function ProductSearch() {
 	}, []);
 
 	const productsQuery = useQuery({
-		queryKey: ['products', 'search'],
+		queryKey: ['products', search],
 		queryFn: async () => {
-			const response = await get<ProductInventoryInfo[]>('/api/inventories');
-			return response;
+			//@TODO: use real barcode search
+			const response = await get<PageResponse<ProductInventoryInfo>>(
+				'/api/inventories',
+				{
+					params: {
+						searchParam: search.trim(),
+					},
+				},
+			);
+			console.log({ response });
+			return response.content;
 		},
 		staleTime: 60_000,
 	});
 
 	const filteredProducts = useMemo(() => {
+		if (!productsQuery.data) return [];
 		if (!search.trim()) return [];
-		const normalized = search.trim().toLowerCase();
-		return (
-			productsQuery.data?.filter((product) => {
-				return [product.name, product.sku, product.barCode]
-					.filter(Boolean)
-					.some((value) => value!.toLowerCase().includes(normalized));
-			}) ?? []
-		).slice(0, 8);
-	}, [productsQuery.data, search]);
+		return productsQuery.data;
+	}, [productsQuery, search]);
 
 	const handleSelect = async (product: ProductInventoryInfo) => {
 		if (product.quantity === null) {

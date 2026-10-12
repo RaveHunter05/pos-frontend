@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Inventory } from '@/types/domain';
+import type { Inventory, PageResponse } from '@/types/domain';
 import { DataTable } from '@/components/DataTable';
 import { useApi } from '../hooks/useApi';
 import { GetInventories } from '@/types/dtos/Inventory';
@@ -11,6 +11,10 @@ export default function Inventory() {
 	const [search, setSearch] = useState('');
 	const [adjustments, setAdjustments] = useState<Record<number, number>>({});
 	const queryClient = useQueryClient();
+
+	const [currentPage, setCurrentPage] = useState(0);
+
+	const [totalPages, setTotalPages] = useState(0);
 	const { get, put } = useApi();
 
 	const generateInventoryReport = async () => {
@@ -30,10 +34,21 @@ export default function Inventory() {
 	};
 
 	const inventoryQuery = useQuery({
-		queryKey: ['inventories'],
+		queryKey: ['inventories', currentPage, search],
 		queryFn: async () => {
-			const response = await get<GetInventories[]>('/api/inventories');
-			return response;
+			const response = await get<PageResponse<GetInventories>>(
+				'/api/inventories',
+				{
+					params: {
+						page: currentPage,
+						searchParam: search.trim(),
+					},
+				},
+			);
+
+			setTotalPages(response.totalPages);
+			console.log({ response });
+			return response.content;
 		},
 	});
 
@@ -56,12 +71,8 @@ export default function Inventory() {
 	const filteredInventory = useMemo(() => {
 		if (!inventoryQuery.data) return [];
 		if (!search.trim()) return inventoryQuery.data;
-		const normalized = search.trim().toLowerCase();
-		return inventoryQuery.data.filter((item) =>
-			[item.name, item.sku, item.barCode]
-				.filter(Boolean)
-				.some((value) => value!.toLowerCase().includes(normalized)),
-		);
+		//@TODO change to normality
+		return inventoryQuery.data;
 	}, [inventoryQuery.data, search]);
 
 	return (
@@ -137,6 +148,33 @@ export default function Inventory() {
 					},
 				]}
 			/>
+			{/* @TODO: crear un solo componente*/}
+			<section className="mt-6 flex items-center justify-end gap-3">
+				<button
+					disabled={currentPage === 0}
+					onClick={() => setCurrentPage(currentPage - 1)}
+					className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 cursor-pointer"
+				>
+					Anterior
+				</button>
+				<div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+					<span className="text-slate-500">Página</span>
+					<span className="font-semibold text-slate-900">
+						{currentPage + 1}
+					</span>
+					<span className="text-slate-500">de</span>
+					<span className="font-semibold text-slate-900">
+						{totalPages || 1}
+					</span>
+				</div>
+				<button
+					disabled={currentPage >= totalPages - 1}
+					onClick={() => setCurrentPage(currentPage + 1)}
+					className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 cursor-pointer"
+				>
+					Siguiente
+				</button>
+			</section>
 		</div>
 	);
 }
