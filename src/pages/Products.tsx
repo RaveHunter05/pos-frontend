@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Product, Category } from '@/types/domain';
+import type { Product, Category, PageResponse } from '@/types/domain';
 import { DataTable } from '@/components/DataTable';
 import { formatCurrency } from '@/lib/format';
 import { useApi } from '../hooks/useApi';
@@ -9,18 +9,56 @@ import toast from 'react-hot-toast';
 
 export default function Products() {
 	const [search, setSearch] = useState('');
+	const [debouncedSearch, setDebouncedSearch] = useState('');
+
 	const [editing, setEditing] = useState<Product | null>(null);
 	const [modalOpen, setModalOpen] = useState(false);
+
+	const [currentPage, setCurrentPage] = useState(0);
+	const [size, setSize] = useState(10);
+	const [totalPages, setTotalPages] = useState(0);
 
 	const { get, apiDelete } = useApi();
 	const queryClient = useQueryClient();
 
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedSearch(search);
+		}, 600);
+
+		return () => clearTimeout(timer);
+	}, [search]);
+
 	const productsQuery = useQuery({
-		queryKey: ['products'],
+		queryKey: ['products', currentPage],
 		queryFn: async () => {
-			const response = await get<Product[]>('/api/products');
-			return response;
+			const response = await get<PageResponse<Product>>('/api/products', {
+				params: {
+					page: currentPage,
+					size: size,
+				},
+			});
+			setTotalPages(response.totalPages);
+			return response.content;
 		},
+	});
+
+	const productsSearch = useQuery({
+		queryKey: ['products', debouncedSearch],
+		queryFn: async () => {
+			const response = await get<PageResponse<Product>>(
+				'/api/products/search',
+				{
+					params: {
+						searchParam: debouncedSearch.trim(),
+					},
+				},
+			);
+			setTotalPages(response.totalPages);
+			console.log({ response });
+			return response.content;
+		},
+		enabled: debouncedSearch.trim().length > 0,
 	});
 
 	const deleteMutation = useMutation({
@@ -63,13 +101,8 @@ export default function Products() {
 	const filteredProducts = useMemo(() => {
 		if (!productsQuery.data) return [];
 		if (!search.trim()) return productsQuery.data;
-		const normalized = search.trim().toLowerCase();
-		return productsQuery.data.filter((product) =>
-			[product.name, product.brand, product.sku, product.barCode]
-				.filter(Boolean)
-				.some((value) => value!.toLowerCase().includes(normalized)),
-		);
-	}, [productsQuery.data, search]);
+		return productsSearch.data ?? [];
+	}, [productsQuery.data, productsSearch.data, search]);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -163,6 +196,32 @@ export default function Products() {
 							},
 						]}
 					/>
+				</section>
+				<section className="mt-6 flex items-center justify-end gap-3">
+					<button
+						disabled={currentPage === 0}
+						onClick={() => setCurrentPage(currentPage - 1)}
+						className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 cursor-pointer"
+					>
+						Anterior
+					</button>
+					<div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+						<span className="text-slate-500">Página</span>
+						<span className="font-semibold text-slate-900">
+							{currentPage + 1}
+						</span>
+						<span className="text-slate-500">de</span>
+						<span className="font-semibold text-slate-900">
+							{totalPages || 1}
+						</span>
+					</div>
+					<button
+						disabled={currentPage >= totalPages - 1}
+						onClick={() => setCurrentPage(currentPage + 1)}
+						className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 cursor-pointer"
+					>
+						Siguiente
+					</button>
 				</section>
 			</div>
 			<ProductModal

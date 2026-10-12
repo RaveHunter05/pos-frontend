@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -47,35 +47,27 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 	const totals = calculateCartTotals({ items, taxRate, discount });
 	const { post } = useApi();
 
-	const [totalCharge, setTotalCharge] = useState<number>(0);
-
 	const {
 		getValues,
 		register,
 		handleSubmit,
 		reset,
+		watch,
 		formState: { errors },
 	} = useForm<PaymentFormValues>({
 		resolver: zodResolver(paymentSchema),
 		defaultValues: {
 			paymentMethod: 'CASH',
 			discount: 0,
-			deliveryFee: 0
+			deliveryFee: 0,
 		},
 	});
 
-	useEffect(() => {
-		const deliveryFee = getValues('deliveryFee');
+	const deliveryFee = parseFloat(watch('deliveryFee')) || 0;
+	const orderDiscount = parseFloat(watch('discount')) || 0;
 
-		const orderDiscount = getValues('discount');
-
-		let totalCharges =
-			parseFloat(totals.total) +
-			parseFloat(deliveryFee) -
-			parseFloat(orderDiscount);
-
-		setTotalCharge(totalCharges);
-	}, [totals, getValues]);
+	const totalCharge =
+		(parseFloat(totals.total) || 0) + deliveryFee - orderDiscount;
 
 	useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
@@ -92,8 +84,6 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 	const mutation = useMutation({
 		mutationFn: async (values: PaymentFormValues) => {
 			const taxableBase = totals.subtotal > 0 ? totals.subtotal : 1;
-
-			//@TODO: subtotal, taxAmount, totalAmount, taxRate should be calculed in the backend
 
 			const payload = {
 				issueDate: new Date().toISOString().slice(0, 10),
@@ -117,7 +107,6 @@ export function PaymentModal({ open, onClose, onSuccess }: PaymentModalProps) {
 
 			//console.log('Payload enviado:', JSON.stringify(payload, null, 2));
 
-			// @TODO usar toast para el mensaje y gestionar mejor lo de el PDF
 			const pdfBlob = await post('/api/orders/generate-invoice', payload, {
 				responseType: 'blob',
 			});

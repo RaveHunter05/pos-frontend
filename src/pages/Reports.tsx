@@ -10,7 +10,7 @@ import { InvoiceStatusChart } from '@/components/Charts/InvoiceStatus';
 import { DataTable } from '@/components/DataTable';
 import { unwrapApiList } from '@/lib/api';
 import { formatCurrency, formatDateTime } from '@/lib/format';
-import type { Inventory, Invoice } from '@/types/domain';
+import type { Inventory, Invoice, PageResponse } from '@/types/domain';
 import { useApi } from '../hooks/useApi';
 import {
 	Combobox,
@@ -133,8 +133,8 @@ export default function Reports() {
 	const inventoryQuery = useQuery({
 		queryKey: ['inventories'],
 		queryFn: async () => {
-			const response = await get<Inventory[]>('/api/inventories');
-			return response;
+			const response = await get<PageResponse<Inventory>>('/api/inventories');
+			return response.content;
 		},
 	});
 
@@ -306,7 +306,7 @@ export default function Reports() {
 			<section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 				<article className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
 					<span className="text-sm text-gray-600 block mb-2">
-						Ventas de hoy
+						Ventas totales
 					</span>
 					<strong className="text-2xl font-bold text-gray-900">
 						{salesKpiLoading ? '...' : formatCurrency(kpis.salesToday)}
@@ -315,7 +315,7 @@ export default function Reports() {
 
 				<article className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
 					<span className="text-sm text-gray-600 block mb-2">
-						Transacciones de hoy
+						Transacciones totales
 					</span>
 					<strong className="text-2xl font-bold text-gray-900">
 						{salesKpiLoading ? '...' : kpis.ticketsToday}
