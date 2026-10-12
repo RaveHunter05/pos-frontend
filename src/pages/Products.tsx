@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Product, Category, PageResponse } from '@/types/domain';
 import { DataTable } from '@/components/DataTable';
@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 
 export default function Products() {
 	const [search, setSearch] = useState('');
+	const [debouncedSearch, setDebouncedSearch] = useState('');
+
 	const [editing, setEditing] = useState<Product | null>(null);
 	const [modalOpen, setModalOpen] = useState(false);
 
@@ -18,6 +20,14 @@ export default function Products() {
 
 	const { get, apiDelete } = useApi();
 	const queryClient = useQueryClient();
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedSearch(search);
+		}, 600);
+
+		return () => clearTimeout(timer);
+	}, [search]);
 
 	const productsQuery = useQuery({
 		queryKey: ['products', currentPage],
@@ -34,13 +44,13 @@ export default function Products() {
 	});
 
 	const productsSearch = useQuery({
-		queryKey: ['products', search],
+		queryKey: ['products', debouncedSearch],
 		queryFn: async () => {
 			const response = await get<PageResponse<Product>>(
 				'/api/products/search',
 				{
 					params: {
-						searchParam: search.trim(),
+						searchParam: debouncedSearch.trim(),
 					},
 				},
 			);
@@ -48,6 +58,7 @@ export default function Products() {
 			console.log({ response });
 			return response.content;
 		},
+		enabled: debouncedSearch.trim().length > 0,
 	});
 
 	const deleteMutation = useMutation({

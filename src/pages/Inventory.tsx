@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Inventory, PageResponse } from '@/types/domain';
 import { DataTable } from '@/components/DataTable';
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 
 export default function Inventory() {
 	const [search, setSearch] = useState('');
+	const [debouncedSearch, setDebouncedSearch] = useState('');
+
 	const [adjustments, setAdjustments] = useState<Record<number, number>>({});
 	const queryClient = useQueryClient();
 
@@ -16,6 +18,14 @@ export default function Inventory() {
 
 	const [totalPages, setTotalPages] = useState(0);
 	const { get, put } = useApi();
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedSearch(search);
+		}, 600);
+
+		return () => clearTimeout(timer);
+	}, [search]);
 
 	const generateInventoryReport = async () => {
 		const pdfBlob = await get('/api/inventories/report/pdf', {
@@ -34,14 +44,14 @@ export default function Inventory() {
 	};
 
 	const inventoryQuery = useQuery({
-		queryKey: ['inventories', currentPage, search],
+		queryKey: ['inventories', currentPage, debouncedSearch],
 		queryFn: async () => {
 			const response = await get<PageResponse<GetInventories>>(
 				'/api/inventories',
 				{
 					params: {
 						page: currentPage,
-						searchParam: search.trim(),
+						searchParam: debouncedSearch.trim(),
 					},
 				},
 			);
@@ -50,6 +60,7 @@ export default function Inventory() {
 			console.log({ response });
 			return response.content;
 		},
+		enabled: debouncedSearch.trim().length > 0,
 	});
 
 	const updateMutation = useMutation({
