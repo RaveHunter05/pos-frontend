@@ -60,7 +60,6 @@ export default function Inventory() {
 			console.log({ response });
 			return response.content;
 		},
-		enabled: debouncedSearch.trim().length > 0,
 	});
 
 	const updateMutation = useMutation({
